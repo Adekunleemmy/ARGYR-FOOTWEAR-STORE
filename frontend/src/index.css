@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Outfit:wght@200;300;400;500;600;700;800&display=swap');
+
+@theme {
+  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Outfit", sans-serif;
+  
+  /* ARGYR Design System colors */
+  --color-brand-offwhite: #FAF9F6;
+  --color-brand-charcoal: #121212;
+  --color-brand-clay: #8C6239;
+  --color-brand-darkolive: #3C433C;
+  --color-brand-gold: #C5A059;
+  
+  --color-accent-light: #8C6239;
+  --color-accent-dark: #C5A059;
+}
+
+/* Custom scrollbar and base transitions */
+@layer base {
+  * {
+    @apply border-neutral-200 dark:border-neutral-800 transition-colors duration-200;
+  }
+  
+  body {
+    @apply bg-neutral-50 text-neutral-900 font-sans antialiased selection:bg-neutral-800 selection:text-white dark:bg-neutral-950 dark:text-neutral-50 dark:selection:bg-neutral-100 dark:selection:text-neutral-900;
+  }
+
+  /* Style headers to use Garamond display font */
+  h1, h2, h3, .font-editorial {
+    @apply font-serif tracking-wide;
+  }
+
+  /* Hide default scrollbars for clean presentation */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-neutral-300 dark:bg-neutral-800 rounded-none;
+  }
+}
+
+/* Custom styling utilities for dark editorial cards and layout styles */
+.border-thin {
+  @apply border-[0.5px] border-neutral-200 dark:border-neutral-800;
+}
+
+.border-thin-b {
+  @apply border-b-[0.5px] border-neutral-200 dark:border-neutral-800;
+}
+
+.border-thin-t {
+  @apply border-t-[0.5px] border-neutral-200 dark:border-neutral-800;
+}
+
+.border-thin-r {
+  @apply border-r-[0.5px] border-neutral-200 dark:border-neutral-800;
+}
+
+.border-thin-l {
+  @apply border-l-[0.5px] border-neutral-200 dark:border-neutral-800;
+}
