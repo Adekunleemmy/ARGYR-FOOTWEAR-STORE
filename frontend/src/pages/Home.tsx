@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { PageTransition } from '../components/PageTransition';
+import { ProductModal } from '../components/ProductModal';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -31,6 +32,7 @@ const itemVariants: Variants = {
 export const Home: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeModalSlug, setActiveModalSlug] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFeatured = async () => {
@@ -50,6 +52,7 @@ export const Home: React.FC = () => {
   }, []);
 
   return (
+    <>
     <PageTransition>
       <div className="w-full flex flex-col overflow-x-hidden">
         {/* 1. HERO SECTION */}
@@ -196,9 +199,9 @@ export const Home: React.FC = () => {
 
                 return (
                   <motion.div key={product.id} variants={itemVariants}>
-                    <Link 
-                      to={`/shop/${product.slug}`} 
-                      className="group flex flex-col gap-4"
+                    <button
+                      onClick={() => setActiveModalSlug(product.slug)}
+                      className="group flex flex-col gap-4 text-left cursor-pointer w-full"
                     >
                       <div className="relative aspect-[4/5] bg-neutral-100 dark:bg-neutral-900 overflow-hidden border-thin">
                         <img 
@@ -206,7 +209,6 @@ export const Home: React.FC = () => {
                           alt={product.name} 
                           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 z-10"
                         />
-                        {/* Secondary hover image */}
                         {product.images[1] && (
                           <img 
                             src={secondaryImage} 
@@ -233,7 +235,7 @@ export const Home: React.FC = () => {
                           ₦{Number(product.price).toLocaleString()}
                         </span>
                       </div>
-                    </Link>
+                    </button>
                   </motion.div>
                 );
               })}
@@ -318,5 +320,13 @@ export const Home: React.FC = () => {
         </section>
       </div>
     </PageTransition>
+
+    {/* Product Quick-View Modal */}
+    <ProductModal
+      slug={activeModalSlug}
+      onClose={() => setActiveModalSlug(null)}
+      onNavigate={(slug) => setActiveModalSlug(slug)}
+    />
+    </>
   );
 };

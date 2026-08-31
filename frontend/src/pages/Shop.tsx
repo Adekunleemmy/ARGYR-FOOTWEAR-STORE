@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { SlidersHorizontal, Search, X } from 'lucide-react';
 import { api } from '../services/api';
 import { PageTransition } from '../components/PageTransition';
+import { ProductModal } from '../components/ProductModal';
 
 interface ShopProps {
   searchOpen: boolean;
@@ -14,6 +14,7 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [activeModalSlug, setActiveModalSlug] = useState<string | null>(null);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,9 +102,9 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
     searchQuery !== '';
 
   return (
-    <PageTransition>
+    <>
+      <PageTransition>
       <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-8">
-      {/* Search Bar Overlay Panel */}
       {searchOpen && (
         <div className="w-full flex items-center gap-4 bg-neutral-100 dark:bg-neutral-900 p-4 border-thin animate-in slide-in-from-top duration-200">
           <Search size={18} className="text-neutral-400" />
@@ -291,10 +292,10 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
                 const secondaryImage = product.images[1]?.url || primaryImage;
 
                 return (
-                  <Link 
-                    key={product.id} 
-                    to={`/shop/${product.slug}`} 
-                    className="group flex flex-col gap-4"
+                  <button
+                    key={product.id}
+                    onClick={() => setActiveModalSlug(product.slug)}
+                    className="group flex flex-col gap-4 text-left cursor-pointer"
                   >
                     <div className="relative aspect-[4/5] bg-neutral-100 dark:bg-neutral-900 border-thin overflow-hidden">
                       <img
@@ -309,8 +310,8 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
                           className="absolute inset-0 w-full h-full object-cover object-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20"
                         />
                       )}
-                      
-                      {/* Sale badge or stock alerts */}
+
+                      {/* Badge */}
                       {isOutOfStock ? (
                         <span className="absolute top-4 left-4 z-30 bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 text-[9px] uppercase tracking-widest font-bold px-2 py-1">
                           Out of stock
@@ -337,7 +338,7 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
                         </span>
                       </div>
                     </div>
-                  </Link>
+                  </button>
                 );
               })}
             </div>
@@ -468,5 +469,13 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
 
     </div>
     </PageTransition>
+
+    {/* Product Quick-View Modal */}
+    <ProductModal
+      slug={activeModalSlug}
+      onClose={() => setActiveModalSlug(null)}
+      onNavigate={(slug) => setActiveModalSlug(slug)}
+    />
+    </>
   );
 };
