@@ -3,7 +3,7 @@ import { PrismaClient, CustomRequestStatus } from '@prisma/client';
 import { CustomRequestCreateSchema, CustomRequestStatusUpdateSchema } from '../schemas/zodSchemas';
 import { formatCustomRequestWhatsAppMessage, generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { config } from '../config';
-import { isCloudinaryConfigured, uploadToCloudinary } from '../utils/cloudinaryHelper';
+import { uploadToCloudinary } from '../utils/cloudinaryHelper';
 
 const prisma = new PrismaClient();
 
@@ -26,16 +26,12 @@ export async function createCustomRequest(req: any, res: Response, next: NextFun
 
     if (files.length > 0) {
       for (const file of files) {
-        let fileUrl = `/uploads/${file.filename}`;
-        if (isCloudinaryConfigured()) {
-          try {
-            const cloudinaryResult = await uploadToCloudinary(file.path);
-            fileUrl = cloudinaryResult.url;
-          } catch (e) {
-            console.error("Cloudinary request upload failure:", e);
-          }
+        try {
+          const cloudinaryResult = await uploadToCloudinary(file.buffer);
+          uploadedUrls.push(cloudinaryResult.url);
+        } catch (e) {
+          console.error("Cloudinary upload failure:", e);
         }
-        uploadedUrls.push(fileUrl);
       }
     }
 

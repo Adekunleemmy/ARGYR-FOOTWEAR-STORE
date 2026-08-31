@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient, ProductStatus, Gender } from '@prisma/client';
 import { ProductSchema } from '../schemas/zodSchemas';
-import { isCloudinaryConfigured, uploadToCloudinary } from '../utils/cloudinaryHelper';
+import { uploadToCloudinary } from '../utils/cloudinaryHelper';
 
 const prisma = new PrismaClient();
 
@@ -246,17 +246,12 @@ export async function handleImageUpload(req: any, res: Response, next: NextFunct
       return res.status(400).json({ success: false, message: "No image file provided" });
     }
 
-    let fileUrl = `/uploads/${req.file.filename}`;
-
-    if (isCloudinaryConfigured()) {
-      const cloudinaryResult = await uploadToCloudinary(req.file.path);
-      fileUrl = cloudinaryResult.url;
-    }
+    const cloudinaryResult = await uploadToCloudinary(req.file.buffer);
 
     res.status(200).json({
       success: true,
       message: "Image uploaded successfully",
-      url: fileUrl
+      url: cloudinaryResult.url
     });
   } catch (err) {
     next(err);

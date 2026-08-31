@@ -1,6 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { config } from '../config';
-import * as fs from 'fs';
 
 // Initialize configuration
 cloudinary.config({
@@ -10,64 +9,36 @@ cloudinary.config({
 });
 
 /**
- * Validates if the required Cloudinary parameters are configured in .env.
+ * Uploads an image buffer directly to Cloudinary (no local disk involvement).
  */
-export const isCloudinaryConfigured = (): boolean => {
-  return !!(
-    config.CLOUDINARY.CLOUD_NAME &&
-    config.CLOUDINARY.API_KEY &&
-    config.CLOUDINARY.API_SECRET
-  );
-};
-
-/**
- * Uploads a local file to Cloudinary and deletes the temporary file from the disk.
- */
-export async function uploadToCloudinary(localFilePath: string, folder = 'argyr'): Promise<{ url: string; publicId: string }> {
-  if (!isCloudinaryConfigured()) {
-    throw new Error('Cloudinary is not configured. Please supply keys in your .env file.');
-  }
-
-  try {
-    const result = await cloudinary.uploader.upload(localFilePath, {
-      folder,
-      resource_type: 'image',
-    });
-
-    // Clean up local temp file asynchronously
-    fs.unlink(localFilePath, (err) => {
-      if (err) {
-        console.error(`Failed to delete local temp file at ${localFilePath}:`, err);
+export async function uploadToCloudinary(
+  buffer: Buffer,
+  folder = 'argyr'
+): Promise<{ url: string; publicId: string }> {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: 'image' },
+      (error, result) => {
+        if (error || !result) return reject(error ?? new Error('Cloudinary upload failed'));
+        resolve({ url: result.secure_url, publicId: result.public_id });
       }
-    });
-
-    return {
-      url: result.secure_url,
-      publicId: result.public_id,
-    };
-  } catch (error) {
-    // Ensure clean-up even on failure
-    fs.unlink(localFilePath, () => {});
-    throw error;
-  }
+    );
+    stream.end(buffer);
+  });
 }
 
 /**
- * Uploads a remote file directly to Cloudinary without local disk storage.
+ * Uploads a remote URL directly to Cloudinary.
  */
-export async function uploadUrlToCloudinary(remoteUrl: string, folder = 'argyr'): Promise<{ url: string; publicId: string }> {
-  if (!isCloudinaryConfigured()) {
-    throw new Error('Cloudinary is not configured. Please supply keys in your .env file.');
-  }
-
+export async function uploadUrlToCloudinary(
+  remoteUrl: string,
+  folder = 'argyr'
+): Promise<{ url: string; publicId: string }> {
   const result = await cloudinary.uploader.upload(remoteUrl, {
     folder,
     resource_type: 'image',
   });
-
-  return {
-    url: result.secure_url,
-    publicId: result.public_id,
-  };
+  return { url: result.secure_url, publicId: result.public_id };
 }
+
 export { cloudinary };
