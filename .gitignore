@@ -15,9 +15,9 @@ backend/db_data/
 .env.development.local
 .env.test.local
 .env.production.local
-
+.agents/
 # Local media uploads (prevent tracking custom reference photos)
-backend/uploads/
+
 
 # OS temporary files
 .DS_Store

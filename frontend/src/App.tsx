@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { CartProvider } from './contexts/CartContext';
 import { ToastProvider } from './components/Toast';
@@ -25,51 +26,60 @@ import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminCustomRequests } from './pages/admin/AdminCustomRequests';
 import { AdminSettings } from './pages/admin/AdminSettings';
 
-export default function App() {
+function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
+  const location = useLocation();
 
+  return (
+    <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 font-sans selection:bg-neutral-800 selection:text-white dark:selection:bg-white dark:selection:text-neutral-900">
+      {/* Navbar with Search toggle hook */}
+      <Navbar onSearchToggle={() => setSearchOpen(!searchOpen)} />
+      
+      <main className="flex-grow flex flex-col">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            {/* Public Client Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/shop" element={<Shop searchOpen={searchOpen} onSearchClose={() => setSearchOpen(false)} />} />
+            <Route path="/shop/:slug" element={<ProductDetail />} />
+            <Route path="/custom" element={<CustomRequestWizard />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/about" element={<About />} />
+
+            {/* Admin Gateway Authentication */}
+            <Route path="/admin" element={<AdminLogin />} />
+
+            {/* Protected Admin Routing Tree */}
+            <Route path="/admin/dashboard" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="products/new" element={<AdminProductForm />} />
+              <Route path="products/edit/:id" element={<AdminProductForm />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="custom-requests" element={<AdminCustomRequests />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
+
+            {/* Catch-all redirect */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AnimatePresence>
+      </main>
+
+      {/* Minimal Editorial Footer */}
+      <Footer />
+    </div>
+  );
+}
+
+export default function App() {
   return (
     <ThemeProvider>
       <CartProvider>
         <ToastProvider>
           <Router>
-            <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 font-sans selection:bg-neutral-800 selection:text-white dark:selection:bg-white dark:selection:text-neutral-900">
-              {/* Navbar with Search toggle hook */}
-              <Navbar onSearchToggle={() => setSearchOpen(!searchOpen)} />
-              
-              <main className="flex-grow flex flex-col">
-                <Routes>
-                  {/* Public Client Routes */}
-                  <Route path="/" element={<Home />} />
-                  <Route path="/shop" element={<Shop searchOpen={searchOpen} onSearchClose={() => setSearchOpen(false)} />} />
-                  <Route path="/shop/:slug" element={<ProductDetail />} />
-                  <Route path="/custom" element={<CustomRequestWizard />} />
-                  <Route path="/cart" element={<CartPage />} />
-                  <Route path="/about" element={<About />} />
-
-                  {/* Admin Gateway Authentication */}
-                  <Route path="/admin" element={<AdminLogin />} />
-
-                  {/* Protected Admin Routing Tree */}
-                  <Route path="/admin/dashboard" element={<AdminLayout />}>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="products" element={<AdminProducts />} />
-                    <Route path="products/new" element={<AdminProductForm />} />
-                    <Route path="products/edit/:id" element={<AdminProductForm />} />
-                    <Route path="categories" element={<AdminCategories />} />
-                    <Route path="orders" element={<AdminOrders />} />
-                    <Route path="custom-requests" element={<AdminCustomRequests />} />
-                    <Route path="settings" element={<AdminSettings />} />
-                  </Route>
-
-                  {/* Catch-all redirect */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </main>
-
-              {/* Minimal Editorial Footer */}
-              <Footer />
-            </div>
+            <AppContent />
           </Router>
         </ToastProvider>
       </CartProvider>

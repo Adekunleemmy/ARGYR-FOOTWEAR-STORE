@@ -1,7 +1,9 @@
 import React from 'react';
+import { PageTransition } from '../components/PageTransition';
 
 export const About: React.FC = () => {
   return (
+    <PageTransition>
     <div className="w-full flex flex-col">
       {/* Editorial Header */}
       <section className="bg-white dark:bg-neutral-950 border-thin-b">
@@ -67,5 +69,6 @@ export const About: React.FC = () => {
         </div>
       </section>
     </div>
+    </PageTransition>
   );
 };

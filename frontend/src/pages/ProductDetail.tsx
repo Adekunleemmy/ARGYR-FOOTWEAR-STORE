@@ -4,6 +4,8 @@ import { ShoppingBag, Loader2, MessageSquare, ArrowLeft, Layers, Bookmark } from
 import { api } from '../services/api';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../components/Toast';
+import { motion } from 'framer-motion';
+import { PageTransition } from '../components/PageTransition';
 
 export const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -100,7 +102,8 @@ export const ProductDetail: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-16">
+    <PageTransition>
+      <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-16">
       {/* Back to Shop Nav */}
       <Link 
         to="/shop" 
@@ -116,7 +119,11 @@ export const ProductDetail: React.FC = () => {
         <div className="flex flex-col gap-4">
           {/* Active Image Window */}
           <div className="relative aspect-[4/5] bg-neutral-100 dark:bg-neutral-900 border-thin overflow-hidden">
-            <img 
+            <motion.img 
+              key={activeImageIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.35 }}
               src={product.images[activeImageIndex]?.url || 'https://via.placeholder.com/600'} 
               alt={product.name} 
               className="w-full h-full object-cover object-center"
@@ -324,6 +331,7 @@ export const ProductDetail: React.FC = () => {
         </section>
       )}
 
-    </div>
+      </div>
+    </PageTransition>
   );
 };

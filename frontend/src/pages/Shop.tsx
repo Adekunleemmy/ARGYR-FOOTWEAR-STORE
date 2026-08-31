@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SlidersHorizontal, Search, X } from 'lucide-react';
 import { api } from '../services/api';
+import { PageTransition } from '../components/PageTransition';
 
 interface ShopProps {
   searchOpen: boolean;
@@ -100,7 +101,8 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
     searchQuery !== '';
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-8">
+    <PageTransition>
+      <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-8">
       {/* Search Bar Overlay Panel */}
       {searchOpen && (
         <div className="w-full flex items-center gap-4 bg-neutral-100 dark:bg-neutral-900 p-4 border-thin animate-in slide-in-from-top duration-200">
@@ -465,5 +467,6 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
       )}
 
     </div>
+    </PageTransition>
   );
 };

@@ -4,6 +4,7 @@ import { Trash2, ShoppingBag, MessageSquare, Loader2, ClipboardCheck, Clipboard 
 import { useCart } from '../contexts/CartContext';
 import { api } from '../services/api';
 import { useToast } from '../components/Toast';
+import { PageTransition } from '../components/PageTransition';
 
 export const CartPage: React.FC = () => {
   const { cart, removeFromCart, updateQuantity, cartCount, cartSubtotal, clearCart } = useCart();
@@ -97,7 +98,8 @@ export const CartPage: React.FC = () => {
   // SUCCESS STATE VIEW
   if (orderSuccess) {
     return (
-      <div className="max-w-md mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
+      <PageTransition>
+        <div className="max-w-md mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
         <div className="w-16 h-16 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 flex items-center justify-center rounded-none shadow-md">
           <ShoppingBag size={28} />
         </div>
@@ -129,13 +131,15 @@ export const CartPage: React.FC = () => {
           </button>
         </div>
       </div>
+      </PageTransition>
     );
   }
 
   // EMPTY BAG STATE VIEW
   if (cart.length === 0) {
     return (
-      <div className="max-w-md mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
+      <PageTransition>
+        <div className="max-w-md mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
         <div className="w-12 h-12 text-neutral-300 dark:text-neutral-700 flex items-center justify-center">
           <ShoppingBag size={32} />
         </div>
@@ -150,11 +154,13 @@ export const CartPage: React.FC = () => {
           Browse Collection
         </Link>
       </div>
+      </PageTransition>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-8">
+    <PageTransition>
+      <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-8">
       
       {/* Title */}
       <div className="border-thin-b pb-6">
@@ -373,5 +379,6 @@ export const CartPage: React.FC = () => {
 
       </div>
     </div>
+    </PageTransition>
   );
 };
