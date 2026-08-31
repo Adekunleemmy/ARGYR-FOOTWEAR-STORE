@@ -95,8 +95,7 @@ export const ProductDetail: React.FC = () => {
 
   const handleWhatsAppContact = () => {
     const textMessage = `Hello ARGYR,\n\nI would like to ask about the availability of the following shoe:\n\n${product.name}\nSKU: ${product.sku}\n\nThank you.`;
-    // Fallback static business number, dynamically load setting if active
-    const number = "2348000000000";
+    const number = import.meta.env.VITE_WHATSAPP_NUMBER;
     const url = `https://wa.me/${number}?text=${encodeURIComponent(textMessage)}`;
     window.open(url, '_blank');
   };

@@ -106,7 +106,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ slug, onClose, onNav
   const handleWhatsAppContact = useCallback(() => {
     if (!product) return;
     const msg = `Hello ARGYR,\n\nI would like to ask about the availability of:\n\n${product.name}\nSKU: ${product.sku}\n\nThank you.`;
-    window.open(`https://wa.me/2348000000000?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
   }, [product]);
 
   const prevImage = () => setActiveImageIndex(i => Math.max(0, i - 1));

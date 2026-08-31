@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 /**
  * Authorization wrapper around fetch.
@@ -6,10 +6,10 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
  */
 async function request(path: string, options: RequestInit = {}) {
   const url = `${BASE_URL}${path}`;
-  
+
   // Set credentials for cookie tracking
   options.credentials = 'include';
-  
+
   // Conditionally add Content-Type for JSON objects, but omit for multipart/form-data
   if (options.body && !(options.body instanceof FormData)) {
     options.headers = {
@@ -19,18 +19,18 @@ async function request(path: string, options: RequestInit = {}) {
   }
 
   const response = await fetch(url, options);
-  
+
   // Catch 401 Session expirations globally (except for verification routines)
   if (response.status === 401 && path !== '/admin/auth/login' && path !== '/admin/auth/me') {
     window.dispatchEvent(new Event('argyr_unauthorized'));
   }
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     throw new Error(data.message || 'Something went wrong. Please try again.');
   }
-  
+
   return data;
 }
 
@@ -38,23 +38,23 @@ export const api = {
   // ==========================================
   // PUBLIC CLIENT API
   // ==========================================
-  
+
   getProducts: (params?: Record<string, string>) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return request(`/products${query}`);
   },
-  
+
   getProductBySlug: (slug: string) => request(`/products/${slug}`),
-  
+
   getCategories: () => request('/categories'),
-  
+
   getPublicSettings: () => request('/settings/public'),
-  
+
   createOrder: (orderData: any) => request('/orders', {
     method: 'POST',
     body: JSON.stringify(orderData)
   }),
-  
+
   createCustomRequest: (formData: FormData) => request('/custom-requests', {
     method: 'POST',
     body: formData
@@ -63,20 +63,20 @@ export const api = {
   // ==========================================
   // ADMIN AUTHENTICATION API
   // ==========================================
-  
+
   adminLogin: (credentials: any) => request('/admin/auth/login', {
     method: 'POST',
     body: JSON.stringify(credentials)
   }),
-  
+
   adminLogout: () => request('/admin/auth/logout', { method: 'POST' }),
-  
+
   adminMe: () => request('/admin/auth/me'),
 
   // ==========================================
   // ADMIN DASHBOARD & CRUD API
   // ==========================================
-  
+
   adminGetDashboardStats: () => request('/admin/dashboard/stats'),
 
   // Admin Products CRUD
