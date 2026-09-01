@@ -10,18 +10,27 @@ async function request(path: string, options: RequestInit = {}) {
   // Set credentials for cookie tracking
   options.credentials = 'include';
 
+  const token = localStorage.getItem('admin_token');
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string> || {})
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   // Conditionally add Content-Type for JSON objects, but omit for multipart/form-data
   if (options.body && !(options.body instanceof FormData)) {
-    options.headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
+    headers['Content-Type'] = 'application/json';
   }
+
+  options.headers = headers;
 
   const response = await fetch(url, options);
 
   // Catch 401 Session expirations globally (except for verification routines)
   if (response.status === 401 && path !== '/admin/auth/login' && path !== '/admin/auth/me') {
+    localStorage.removeItem('admin_token');
     window.dispatchEvent(new Event('argyr_unauthorized'));
   }
 
@@ -64,12 +73,24 @@ export const api = {
   // ADMIN AUTHENTICATION API
   // ==========================================
 
-  adminLogin: (credentials: any) => request('/admin/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(credentials)
-  }),
+  adminLogin: async (credentials: any) => {
+    const data = await request('/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials)
+    });
+    if (data.token) {
+      localStorage.setItem('admin_token', data.token);
+    }
+    return data;
+  },
 
-  adminLogout: () => request('/admin/auth/logout', { method: 'POST' }),
+  adminLogout: async () => {
+    try {
+      return await request('/admin/auth/logout', { method: 'POST' });
+    } finally {
+      localStorage.removeItem('admin_token');
+    }
+  },
 
   adminMe: () => request('/admin/auth/me'),
 

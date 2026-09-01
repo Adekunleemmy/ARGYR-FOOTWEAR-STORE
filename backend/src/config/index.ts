@@ -16,7 +16,7 @@ function requireEnv(key: string): string {
 }
 
 export const config = {
-  PORT: process.env.PORT,
+  PORT: process.env.PORT || 5000,
   DATABASE_URL: requireEnv('DATABASE_URL'),
   JWT_SECRET: requireEnv('JWT_SECRET'),
   DEFAULT_WHATSAPP_NUMBER: requireEnv('ARGYR_WHATSAPP_NUMBER'),

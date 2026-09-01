@@ -37,14 +37,16 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     // Set secure HTTP-only cookie
     const isProd = config.NODE_ENV === 'production';
+    const sameSite = isProd ? 'SameSite=Strict;' : 'SameSite=Lax;';
     res.setHeader(
       'Set-Cookie',
-      `admin_token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Strict;${isProd ? ' Secure;' : ''}`
+      `admin_token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; ${sameSite}${isProd ? ' Secure;' : ''}`
     );
 
     res.status(200).json({
       success: true,
       message: "Admin signed in successfully",
+      token,
       admin: {
         id: admin.id,
         name: admin.name,
