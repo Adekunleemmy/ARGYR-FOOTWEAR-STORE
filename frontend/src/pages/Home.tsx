@@ -60,7 +60,7 @@ export const Home: React.FC = () => {
           {/* Visual Background image (Editorial shoe photo) */}
           <div className="absolute inset-0 z-0 overflow-hidden">
             <motion.img 
-              src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1920&q=80" 
+              src="/images/hero-banner.jpg" 
               alt="ARGYR premium footwear" 
               className="w-full h-full object-cover object-center select-none"
               initial={{ scale: 1.15, opacity: 0 }}
@@ -254,7 +254,7 @@ export const Home: React.FC = () => {
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
               <img 
-                src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=1200&q=80" 
+                src="/images/atelier-consultation.jpg" 
                 alt="Atelier workspace tools" 
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
               />
@@ -311,7 +311,7 @@ export const Home: React.FC = () => {
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
               <img 
-                src="https://images.unsplash.com/photo-1520639888713-7851133b1ed0?auto=format&fit=crop&w=1200&q=80" 
+                src="/images/wholesale-channel.jpg" 
                 alt="Multiple shoe pairs presentation" 
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
               />

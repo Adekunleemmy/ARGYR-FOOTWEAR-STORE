@@ -25,7 +25,7 @@ export const About: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
           <div className="relative aspect-[4/5] bg-neutral-200 border-thin overflow-hidden">
             <img 
-              src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=80" 
+              src="/images/about-craft.jpg" 
               alt="Atelier leather work close up" 
               className="w-full h-full object-cover"
             />
