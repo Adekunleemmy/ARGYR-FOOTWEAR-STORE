@@ -4,7 +4,7 @@ import { PrismaClient, ProductStatus, OrderStatus, CustomRequestStatus } from '@
 const prisma = new PrismaClient();
 
 /**
- * Admin: Retrieve dashboard statistics and recent activity logs
+ * Admin: Retrieve dashboard statistics and live ecommerce metrics
  */
 export async function getDashboardStats(req: Request, res: Response, next: NextFunction) {
   try {
@@ -12,29 +12,70 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
       totalProducts,
       activeProducts,
       outOfStockProducts,
-      newOrders,
+      totalCustomers,
+      paidOrdersCount,
+      pendingPaymentOrdersCount,
+      inProductionOrdersCount,
+      shippedOrdersCount,
+      deliveredOrdersCount,
       pendingCustomRequests,
-      completedOrders,
+      revenueAggregation,
       recentOrders,
       recentCustomRequests
     ] = await Promise.all([
-      // Count products excluding archived soft-deletes
+      // Product counts
       prisma.product.count({ where: { status: { not: ProductStatus.ARCHIVED } } }),
       prisma.product.count({ where: { status: ProductStatus.ACTIVE } }),
       prisma.product.count({ where: { status: ProductStatus.OUT_OF_STOCK } }),
       
-      // Count order and custom request queues
-      prisma.order.count({ where: { status: OrderStatus.NEW } }),
-      prisma.customRequest.count({ where: { status: { in: [CustomRequestStatus.NEW, CustomRequestStatus.REVIEWING] } } }),
-      prisma.order.count({ where: { status: OrderStatus.COMPLETED } }),
-      
-      // Fetch recent order logs
+      // Customer count
+      prisma.customer.count(),
+
+      // Order counts by ecommerce stage
+      prisma.order.count({ where: { status: { in: [OrderStatus.PAID, OrderStatus.CONFIRMED] } } }),
+      prisma.order.count({ where: { status: OrderStatus.PENDING_PAYMENT } }),
+      prisma.order.count({ where: { status: OrderStatus.IN_PRODUCTION } }),
+      prisma.order.count({ where: { status: OrderStatus.SHIPPED } }),
+      prisma.order.count({ where: { status: OrderStatus.DELIVERED } }),
+
+      // Custom shoe requests queue
+      prisma.customRequest.count({
+        where: { status: { in: [CustomRequestStatus.NEW, CustomRequestStatus.REVIEWING] } }
+      }),
+
+      // Authoritative paid revenue sum (verified paid / completed orders only)
+      prisma.order.aggregate({
+        _sum: {
+          totalAmount: true
+        },
+        where: {
+          status: {
+            in: [
+              OrderStatus.PAID,
+              OrderStatus.CONFIRMED,
+              OrderStatus.IN_PRODUCTION,
+              OrderStatus.READY_FOR_SHIPPING,
+              OrderStatus.SHIPPED,
+              OrderStatus.DELIVERED,
+              OrderStatus.COMPLETED // legacy completed
+            ]
+          }
+        }
+      }),
+
+      // Recent order activity
       prisma.order.findMany({
-        take: 5,
+        take: 6,
+        include: {
+          items: true,
+          customer: {
+            select: { firstName: true, lastName: true, email: true }
+          }
+        },
         orderBy: { createdAt: 'desc' }
       }),
-      
-      // Fetch recent custom shoe requests
+
+      // Recent custom requests
       prisma.customRequest.findMany({
         take: 5,
         include: { referenceProduct: true },
@@ -42,15 +83,22 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
       })
     ]);
 
+    const totalPaidRevenue = Number(revenueAggregation._sum.totalAmount || 0);
+
     res.status(200).json({
       success: true,
       stats: {
         totalProducts,
         activeProducts,
         outOfStockProducts,
-        newOrders,
-        pendingCustomRequests,
-        completedOrders
+        totalCustomers,
+        totalPaidRevenue,
+        paidOrdersCount,
+        pendingPaymentOrdersCount,
+        inProductionOrdersCount,
+        shippedOrdersCount,
+        deliveredOrdersCount,
+        pendingCustomRequests
       },
       recentOrders,
       recentCustomRequests

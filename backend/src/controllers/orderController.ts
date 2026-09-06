@@ -3,12 +3,13 @@ import { PrismaClient, OrderStatus } from '@prisma/client';
 import { OrderCreateSchema, OrderStatusUpdateSchema } from '../schemas/zodSchemas';
 import { calculateOrderPricing } from '../services/pricingService';
 import { formatOrderWhatsAppMessage, generateWhatsAppUrl } from '../utils/whatsappHelper';
+import { sendOrderStatusUpdateEmail } from '../services/emailService';
 import { config } from '../config';
 
 const prisma = new PrismaClient();
 
 /**
- * Public: Create an order enquiry
+ * Public: Create an order enquiry (Legacy WhatsApp workflow preserved for backward compatibility)
  */
 export async function createOrderEnquiry(req: Request, res: Response, next: NextFunction) {
   try {
@@ -41,6 +42,7 @@ export async function createOrderEnquiry(req: Request, res: Response, next: Next
           notes: customerData.notes,
           subtotal: pricingDetails.subtotal,
           estimatedTotal: pricingDetails.estimatedTotal,
+          totalAmount: pricingDetails.estimatedTotal,
           status: OrderStatus.NEW,
           whatsappMessage: '' // Temporary empty, will populate next
         }
@@ -53,11 +55,13 @@ export async function createOrderEnquiry(req: Request, res: Response, next: Next
           productId: item.productId,
           productName: pricingInfo.name,
           productSku: pricingInfo.sku,
+          productImage: pricingInfo.imageUrl,
           selectedSize: item.selectedSize,
           selectedColour: item.selectedColour,
           quantity: item.quantity,
           unitPrice: pricingInfo.appliedUnitPrice,
-          estimatedSubtotal: pricingInfo.estimatedSubtotal
+          estimatedSubtotal: pricingInfo.subtotal,
+          subtotal: pricingInfo.subtotal
         };
       });
 
@@ -111,13 +115,61 @@ export async function createOrderEnquiry(req: Request, res: Response, next: Next
 }
 
 /**
- * Admin: Retrieve all order enquiries
+ * Admin: Retrieve all orders with search, status filters, and pagination support
  */
 export async function adminGetOrders(req: Request, res: Response, next: NextFunction) {
   try {
+    const status = req.query.status as string;
+    const search = req.query.search as string;
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+
+    const where: any = {};
+
+    if (status && status !== 'ALL') {
+      where.status = status as OrderStatus;
+    }
+
+    if (search) {
+      where.OR = [
+        { orderReference: { contains: search, mode: 'insensitive' } },
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { customerEmail: { contains: search, mode: 'insensitive' } },
+        { customerPhone: { contains: search, mode: 'insensitive' } },
+        { deliveryCity: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
     const orders = await prisma.order.findMany({
+      where,
       include: {
-        items: true
+        items: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        },
+        payments: {
+          select: {
+            id: true,
+            transactionReference: true,
+            amount: true,
+            currency: true,
+            status: true,
+            paymentMethod: true,
+            paidAt: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -129,14 +181,31 @@ export async function adminGetOrders(req: Request, res: Response, next: NextFunc
 }
 
 /**
- * Admin: Get single order details
+ * Admin: Get single order details with full item snapshots, payments, and timeline
  */
 export async function adminGetOrderDetail(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
     const order = await prisma.order.findUnique({
       where: { id },
-      include: { items: true }
+      include: {
+        items: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' }
+        },
+        statusHistory: {
+          orderBy: { createdAt: 'desc' }
+        }
+      }
     });
 
     if (!order) {
@@ -150,19 +219,69 @@ export async function adminGetOrderDetail(req: Request, res: Response, next: Nex
 }
 
 /**
- * Admin: Update order enquiry status
+ * Admin: Update order status with audit log and customer status update email
  */
-export async function adminUpdateOrderStatus(req: Request, res: Response, next: NextFunction) {
+export async function adminUpdateOrderStatus(req: any, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const { status } = OrderStatusUpdateSchema.parse(req.body);
+    const { status, internalNote, customerNote } = OrderStatusUpdateSchema.parse(req.body);
 
-    const order = await prisma.order.update({
+    const existingOrder = await prisma.order.findUnique({
       where: { id },
-      data: { status }
+      include: { customer: true }
     });
 
-    res.status(200).json({ success: true, message: `Order status updated to ${status}`, order });
+    if (!existingOrder) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    const previousStatus = existingOrder.status;
+
+    // Transaction: update order status + add status history entry
+    const updatedOrder = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.update({
+        where: { id },
+        data: { status }
+      });
+
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: id,
+          previousStatus,
+          newStatus: status,
+          internalNote: internalNote || null,
+          customerNote: customerNote || null,
+          changedBy: req.admin?.id || 'ADMIN'
+        }
+      });
+
+      return order;
+    });
+
+    // Send transactional status update email if moving into fulfillment stages
+    const emailEligibleStatuses: OrderStatus[] = [
+      OrderStatus.IN_PRODUCTION,
+      OrderStatus.READY_FOR_SHIPPING,
+      OrderStatus.SHIPPED,
+      OrderStatus.DELIVERED
+    ];
+
+    if (emailEligibleStatuses.includes(status)) {
+      sendOrderStatusUpdateEmail(
+        existingOrder,
+        existingOrder.customer,
+        status,
+        customerNote || undefined
+      ).catch(err => {
+        console.error("Failed to send status update email:", err);
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Order status updated to ${status}`,
+      order: updatedOrder
+    });
   } catch (err) {
     next(err);
   }

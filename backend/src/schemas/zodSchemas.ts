@@ -1,11 +1,88 @@
 import { z } from 'zod';
 import { Gender, ProductStatus, OrderStatus, CustomRequestStatus } from '@prisma/client';
 
+// ==========================================
+// ADMIN AUTH SCHEMAS
+// ==========================================
 export const AdminLoginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters')
 });
 
+// ==========================================
+// CUSTOMER AUTH SCHEMAS
+// ==========================================
+export const CustomerRegisterSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string(),
+  phone: z.string().optional().nullable(),
+  marketingOptIn: z.boolean().default(false)
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
+});
+
+export const CustomerLoginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required')
+});
+
+export const CustomerVerifyOtpSchema = z.object({
+  email: z.string().email('Valid email is required').optional(),
+  customerId: z.string().optional(),
+  otp: z.string().length(6, 'Verification code must be exactly 6 digits')
+}).refine(data => data.email || data.customerId, {
+  message: "Email or Customer ID is required to verify code",
+  path: ["email"]
+});
+
+export const CustomerResendOtpSchema = z.object({
+  email: z.string().email('Valid email is required').optional(),
+  customerId: z.string().optional()
+}).refine(data => data.email || data.customerId, {
+  message: "Email or Customer ID is required to resend code",
+  path: ["email"]
+});
+
+export const CustomerForgotPasswordSchema = z.object({
+  email: z.string().email('Please enter a valid email address')
+});
+
+export const CustomerResetPasswordSchema = z.object({
+  email: z.string().email('Valid email is required'),
+  token: z.string().min(10, 'Invalid reset token'),
+  password: z.string().min(8, 'New password must be at least 8 characters'),
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
+});
+
+export const CustomerProfileUpdateSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters').optional(),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters').optional(),
+  phone: z.string().min(6, 'Valid phone number required').optional().nullable(),
+  marketingOptIn: z.boolean().optional()
+});
+
+export const CustomerAddressSchema = z.object({
+  label: z.string().optional().nullable(),
+  recipientName: z.string().min(2, 'Recipient name is required'),
+  phone: z.string().min(6, 'Contact phone is required'),
+  country: z.string().min(2, 'Country is required'),
+  stateRegion: z.string().optional().nullable(),
+  city: z.string().min(2, 'City is required'),
+  addressLine: z.string().min(5, 'Delivery address is required'),
+  postalCode: z.string().optional().nullable(),
+  isDefault: z.boolean().default(false)
+});
+
+// ==========================================
+// CATALOG & STORE SCHEMAS
+// ==========================================
 export const CategorySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   slug: z.string().min(2, 'Slug must be at least 2 characters').regex(/^[a-z0-9-]+$/, 'Slug must be alphanumeric with hyphens'),
@@ -44,6 +121,9 @@ export const ProductSchema = z.object({
   images: z.array(ProductImageSchema).default([])
 });
 
+// ==========================================
+// CHECKOUT & ORDERS SCHEMAS
+// ==========================================
 export const OrderItemInputSchema = z.object({
   productId: z.string().uuid('Invalid product ID'),
   selectedSize: z.string().min(1, 'Size is required'),
@@ -51,6 +131,7 @@ export const OrderItemInputSchema = z.object({
   quantity: z.number().int().min(1, 'Quantity must be at least 1')
 });
 
+// Legacy order enquiry schema (preserved for compatibility)
 export const OrderCreateSchema = z.object({
   customerName: z.string().min(2, 'Name must be at least 2 characters'),
   customerPhone: z.string().min(5, 'Phone number must be at least 5 characters'),
@@ -62,6 +143,40 @@ export const OrderCreateSchema = z.object({
   items: z.array(OrderItemInputSchema).min(1, 'Order must contain at least one item')
 });
 
+// New Authenticated Checkout initialization schema
+export const CheckoutInitializeSchema = z.object({
+  shippingAddress: z.object({
+    recipientName: z.string().min(2, 'Full recipient name is required'),
+    phone: z.string().min(6, 'Valid phone number is required'),
+    country: z.string().min(2, 'Country is required'),
+    stateRegion: z.string().optional().nullable(),
+    city: z.string().min(2, 'City is required'),
+    addressLine: z.string().min(5, 'Full delivery address is required'),
+    postalCode: z.string().optional().nullable(),
+    deliveryInstructions: z.string().optional().nullable(),
+  }),
+  shippingMethodId: z.string().uuid('Please select a valid shipping method'),
+  notes: z.string().optional().nullable(),
+  items: z.array(OrderItemInputSchema).min(1, 'Cart must contain at least one item'),
+  saveAddress: z.boolean().default(false)
+});
+
+// Shipping Method Admin Update Schema
+export const ShippingMethodUpdateSchema = z.object({
+  name: z.string().min(2, 'Name is required'),
+  description: z.string().optional().nullable(),
+  price: z.number().min(0, 'Shipping fee must be 0 or positive'),
+  currency: z.string().default('NGN'),
+  active: z.boolean().default(true),
+  sortOrder: z.number().int().optional()
+});
+
+// Admin Notification Email Schema
+export const AdminNotificationEmailSchema = z.object({
+  email: z.string().email('Invalid email address')
+});
+
+// Custom Shoe Request Schemas
 export const CustomRequestCreateSchema = z.object({
   customerName: z.string().min(2, 'Name must be at least 2 characters'),
   customerPhone: z.string().min(5, 'Phone number must be at least 5 characters'),
@@ -81,7 +196,9 @@ export const CustomRequestCreateSchema = z.object({
 });
 
 export const OrderStatusUpdateSchema = z.object({
-  status: z.nativeEnum(OrderStatus)
+  status: z.nativeEnum(OrderStatus),
+  internalNote: z.string().optional().nullable(),
+  customerNote: z.string().optional().nullable()
 });
 
 export const CustomRequestStatusUpdateSchema = z.object({
