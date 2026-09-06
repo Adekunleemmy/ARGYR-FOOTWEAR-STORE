@@ -117,7 +117,7 @@ export const ProductDetail: React.FC = () => {
         {/* LEFT COLUMN: IMAGES */}
         <div className="flex flex-col gap-4">
           {/* Active Image Window */}
-          <div className="relative aspect-[4/5] bg-neutral-100 dark:bg-neutral-900 border-thin overflow-hidden">
+          <div className="relative aspect-square bg-neutral-100 dark:bg-neutral-900 border-thin overflow-hidden">
             <motion.img 
               key={activeImageIndex}
               initial={{ opacity: 0 }}
@@ -141,7 +141,7 @@ export const ProductDetail: React.FC = () => {
                 <button
                   key={img.id}
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`relative w-20 aspect-[4/5] border-[0.5px] overflow-hidden shrink-0 cursor-pointer ${
+                  className={`relative w-20 aspect-square border-[0.5px] overflow-hidden shrink-0 cursor-pointer bg-neutral-100 dark:bg-neutral-900 ${
                     activeImageIndex === idx 
                       ? 'border-neutral-950 dark:border-white' 
                       : 'border-neutral-200 dark:border-neutral-800 opacity-60'

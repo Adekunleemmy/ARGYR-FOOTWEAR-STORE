@@ -297,7 +297,7 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
                     onClick={() => setActiveModalSlug(product.slug)}
                     className="group flex flex-col gap-4 text-left cursor-pointer"
                   >
-                    <div className="relative aspect-[4/5] bg-neutral-100 dark:bg-neutral-900 border-thin overflow-hidden">
+                    <div className="relative aspect-square bg-neutral-100 dark:bg-neutral-900 border-thin overflow-hidden">
                       <img
                         src={primaryImage}
                         alt={product.name}

@@ -203,7 +203,7 @@ export const Home: React.FC = () => {
                       onClick={() => setActiveModalSlug(product.slug)}
                       className="group flex flex-col gap-4 text-left cursor-pointer w-full"
                     >
-                      <div className="relative aspect-[4/5] bg-neutral-100 dark:bg-neutral-900 overflow-hidden border-thin">
+                      <div className="relative aspect-square bg-neutral-100 dark:bg-neutral-900 overflow-hidden border-thin">
                         <img 
                           src={primaryImage} 
                           alt={product.name} 

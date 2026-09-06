@@ -191,15 +191,15 @@ export const ProductModal: React.FC<ProductModalProps> = ({ slug, onClose, onNav
                     {/* Main product layout */}
                     <div className="grid grid-cols-1 md:grid-cols-2">
                       {/* LEFT: Images */}
-                      <div className="relative aspect-[4/5] bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
+                      <div className="relative aspect-square bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
                         <AnimatePresence mode="wait">
                           <motion.img
                             key={activeImageIndex}
                             src={product.images[activeImageIndex]?.url || 'https://via.placeholder.com/600'}
                             alt={product.name}
-                            className="absolute inset-0 w-full h-full object-cover object-center"
-                            initial={{ opacity: 0, scale: 1.03 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                            className="w-full h-full object-cover object-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                           />
