@@ -8,10 +8,46 @@ import { PrismaClient } from "@prisma/client";
 const app = express();
 const prisma = new PrismaClient();
 
-// Configure CORS with credentials support (important for HTTP-only cookies)
+// Parse allowed origins from FRONTEND_URL (supports comma-separated values)
+const allowedOrigins = (config.FRONTEND_URL || "")
+  .split(",")
+  .map((url) => url.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+// Configure CORS with credentials support and dynamic origin matching
 app.use(
   cors({
-    origin: config.FRONTEND_URL,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      const cleanOrigin = origin.replace(/\/$/, "");
+
+      // 1. Check if explicitly in allowedOrigins list from .env
+      if (allowedOrigins.includes(cleanOrigin) || allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+
+      // 2. Automatically allow argyrworldwide.com and www.argyrworldwide.com
+      if (/^https?:\/\/([a-zA-Z0-9-]+\.)?argyrworldwide\.com$/.test(cleanOrigin)) {
+        return callback(null, true);
+      }
+
+      // 3. Allow Vercel preview deployments
+      if (/^https?:\/\/.*\.vercel\.app$/.test(cleanOrigin)) {
+        return callback(null, true);
+      }
+
+      // 4. In development, allow localhost on any port
+      if (config.NODE_ENV !== "production" && /^https?:\/\/localhost(:\d+)?$/.test(cleanOrigin)) {
+        return callback(null, true);
+      }
+
+      console.warn(`[CORS] Rejected origin: ${origin}`);
+      return callback(null, false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
