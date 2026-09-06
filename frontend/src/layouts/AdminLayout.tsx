@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutGrid, ShoppingBag, FolderOpen, Sliders, LogOut, Loader2, Sparkles, FileSpreadsheet } from 'lucide-react';
+import { LayoutGrid, ShoppingBag, FolderOpen, Sliders, LogOut, Loader2, Sparkles, FileSpreadsheet, Truck, Users } from 'lucide-react';
 import { api } from '../services/api';
 import { useToast } from '../components/Toast';
 
@@ -56,6 +56,8 @@ export const AdminLayout: React.FC = () => {
     { label: 'Products', path: '/admin/dashboard/products', icon: ShoppingBag },
     { label: 'Categories', path: '/admin/dashboard/categories', icon: FolderOpen },
     { label: 'Orders', path: '/admin/dashboard/orders', icon: FileSpreadsheet },
+    { label: 'Customers', path: '/admin/dashboard/customers', icon: Users },
+    { label: 'Shipping', path: '/admin/dashboard/shipping', icon: Truck },
     { label: 'Custom requests', path: '/admin/dashboard/custom-requests', icon: Sparkles },
     { label: 'Settings', path: '/admin/dashboard/settings', icon: Sliders }
   ];

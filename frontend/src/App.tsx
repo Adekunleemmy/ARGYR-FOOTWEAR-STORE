@@ -3,9 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AnimatePresence } from 'framer-motion';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { CartProvider } from './contexts/CartContext';
+import { CustomerAuthProvider } from './contexts/CustomerAuthContext';
 import { ToastProvider } from './components/Toast';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { AuthModal } from './components/AuthModal';
 
 // Public Pages
 import { Home } from './pages/Home';
@@ -14,6 +16,15 @@ import { ProductDetail } from './pages/ProductDetail';
 import { CustomRequestWizard } from './pages/CustomRequestWizard';
 import { CartPage } from './pages/CartPage';
 import { About } from './pages/About';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { CheckoutConfirmPage } from './pages/CheckoutConfirmPage';
+
+// Customer Account Pages
+import { AccountLayout } from './layouts/AccountLayout';
+import { AccountOverview } from './pages/account/AccountOverview';
+import { AccountOrders } from './pages/account/AccountOrders';
+import { OrderDetailPage } from './pages/account/OrderDetailPage';
+import { AccountProfile } from './pages/account/AccountProfile';
 
 // Admin Pages
 import { AdminLogin } from './pages/admin/AdminLogin';
@@ -23,6 +34,8 @@ import { AdminProducts } from './pages/admin/AdminProducts';
 import { AdminProductForm } from './pages/admin/AdminProductForm';
 import { AdminCategories } from './pages/admin/AdminCategories';
 import { AdminOrders } from './pages/admin/AdminOrders';
+import { AdminCustomers } from './pages/admin/AdminCustomers';
+import { AdminShipping } from './pages/admin/AdminShipping';
 import { AdminCustomRequests } from './pages/admin/AdminCustomRequests';
 import { AdminSettings } from './pages/admin/AdminSettings';
 
@@ -32,6 +45,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 font-sans selection:bg-neutral-800 selection:text-white dark:selection:bg-white dark:selection:text-neutral-900">
+      {/* Global Auth Modal for Customer Account Access */}
+      <AuthModal />
+
       {/* Navbar with Search toggle hook */}
       <Navbar onSearchToggle={() => setSearchOpen(!searchOpen)} />
       
@@ -45,6 +61,16 @@ function AppContent() {
             <Route path="/custom" element={<CustomRequestWizard />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/about" element={<About />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/checkout/confirm" element={<CheckoutConfirmPage />} />
+
+            {/* Customer Account Routes */}
+            <Route path="/account" element={<AccountLayout />}>
+              <Route index element={<AccountOverview />} />
+              <Route path="orders" element={<AccountOrders />} />
+              <Route path="orders/:id" element={<OrderDetailPage />} />
+              <Route path="profile" element={<AccountProfile />} />
+            </Route>
 
             {/* Admin Gateway Authentication */}
             <Route path="/admin" element={<AdminLogin />} />
@@ -57,6 +83,8 @@ function AppContent() {
               <Route path="products/edit/:id" element={<AdminProductForm />} />
               <Route path="categories" element={<AdminCategories />} />
               <Route path="orders" element={<AdminOrders />} />
+              <Route path="customers" element={<AdminCustomers />} />
+              <Route path="shipping" element={<AdminShipping />} />
               <Route path="custom-requests" element={<AdminCustomRequests />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
@@ -76,13 +104,15 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <CartProvider>
-        <ToastProvider>
-          <Router>
-            <AppContent />
-          </Router>
-        </ToastProvider>
-      </CartProvider>
+      <ToastProvider>
+        <CustomerAuthProvider>
+          <CartProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </CartProvider>
+        </CustomerAuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

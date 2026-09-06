@@ -1,384 +1,621 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trash2, ShoppingBag, MessageSquare, Loader2, ClipboardCheck, Clipboard } from 'lucide-react';
+import {
+  Trash2,
+  ShoppingBag,
+  ShieldCheck,
+  CreditCard,
+  Truck,
+  MapPin,
+  Lock,
+  MessageSquare,
+  Loader2,
+  Plus,
+  Minus,
+  CheckCircle2
+} from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { api } from '../services/api';
 import { useToast } from '../components/Toast';
 import { PageTransition } from '../components/PageTransition';
 
 export const CartPage: React.FC = () => {
-  const { cart, removeFromCart, updateQuantity, cartCount, cartSubtotal, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, cartCount, cartSubtotal } = useCart();
+  const { customer, isAuthenticated, openAuthModal } = useCustomerAuth();
   const { toast } = useToast();
 
-  // Checkout Fields State
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [deliveryCountry, setDeliveryCountry] = useState('Nigeria');
-  const [deliveryCity, setDeliveryCity] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [notes, setNotes] = useState('');
+  // Shipping methods from server
+  const [shippingMethods, setShippingMethods] = useState<any[]>([]);
+  const [selectedShippingId, setSelectedShippingId] = useState<string>('');
+  const [deliveryTimeframe, setDeliveryTimeframe] = useState('7–14 days');
 
-  // Execution States
-  const [checkingOut, setCheckingOut] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
-  const [copied, setCopied] = useState(false);
+  // Delivery details form state
+  const [recipientName, setRecipientName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState('Nigeria');
+  const [stateRegion, setStateRegion] = useState('');
+  const [city, setCity] = useState('');
+  const [addressLine, setAddressLine] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
+  const [saveAddress, setSaveAddress] = useState(false);
 
-  const handleSubmitCheckout = async (e: React.FormEvent) => {
+  // Saved addresses from customer account
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
+
+  // Checkout execution state
+  const [initializingPayment, setInitializingPayment] = useState(false);
+
+  // 1. Fetch shipping methods and store settings
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const [shipRes, settingsRes] = await Promise.all([
+          api.getShippingMethods(),
+          api.getPublicSettings()
+        ]);
+
+        if (shipRes.success && shipRes.shippingMethods?.length > 0) {
+          setShippingMethods(shipRes.shippingMethods);
+          setSelectedShippingId(shipRes.shippingMethods[0].id);
+        }
+
+        if (settingsRes.success && settingsRes.settings?.ESTIMATED_DELIVERY_TIMEFRAME) {
+          setDeliveryTimeframe(settingsRes.settings.ESTIMATED_DELIVERY_TIMEFRAME);
+        }
+      } catch (err) {
+        console.error("Failed to load checkout configurations:", err);
+      }
+    };
+
+    fetchConfig();
+  }, []);
+
+  // 2. Pre-fill customer details and saved addresses
+  useEffect(() => {
+    if (customer) {
+      setRecipientName(`${customer.firstName} ${customer.lastName}`.trim());
+      if (customer.phone) setPhone(customer.phone);
+
+      const loadAddresses = async () => {
+        try {
+          const res = await api.getCustomerProfile();
+          if (res.success && res.customer?.addresses?.length > 0) {
+            setSavedAddresses(res.customer.addresses);
+            const defaultAddr = res.customer.addresses.find((a: any) => a.isDefault) || res.customer.addresses[0];
+            if (defaultAddr) {
+              setSelectedAddressId(defaultAddr.id);
+              applyAddress(defaultAddr);
+            }
+          }
+        } catch {
+          // Continue with manual fields
+        }
+      };
+
+      loadAddresses();
+    }
+  }, [customer]);
+
+  const applyAddress = (addr: any) => {
+    setRecipientName(addr.recipientName);
+    setPhone(addr.phone);
+    setCountry(addr.country);
+    setStateRegion(addr.stateRegion || '');
+    setCity(addr.city);
+    setAddressLine(addr.addressLine);
+    setPostalCode(addr.postalCode || '');
+  };
+
+  const handleSavedAddressChange = (addrId: string) => {
+    setSelectedAddressId(addrId);
+    if (addrId === 'new') {
+      setAddressLine('');
+      setCity('');
+      setStateRegion('');
+      setPostalCode('');
+    } else {
+      const found = savedAddresses.find(a => a.id === addrId);
+      if (found) applyAddress(found);
+    }
+  };
+
+  const selectedShipping = shippingMethods.find(m => m.id === selectedShippingId);
+  const shippingFee = selectedShipping ? Number(selectedShipping.price) : 0;
+  const grandTotal = cartSubtotal + shippingFee;
+
+  const formatPrice = (price: number) => {
+    return '₦' + Number(price).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+  };
+
+  const handleCheckoutPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cart.length === 0) return;
 
-    if (!customerName || !customerPhone || !deliveryCountry || !deliveryCity || !deliveryAddress) {
-      toast("Please fill in all required delivery and contact fields.", "error");
+    if (!isAuthenticated) {
+      openAuthModal('login');
       return;
     }
 
-    setCheckingOut(true);
-    try {
-      const orderItems = cart.map(item => ({
-        productId: item.productId,
-        selectedSize: item.selectedSize,
-        selectedColour: item.selectedColour,
-        quantity: item.quantity
-      }));
+    if (!recipientName || !phone || !country || !city || !addressLine) {
+      toast("Please complete all required delivery fields.", "error");
+      return;
+    }
 
+    if (!selectedShippingId) {
+      toast("Please select a shipping method.", "error");
+      return;
+    }
+
+    setInitializingPayment(true);
+    try {
       const payload = {
-        customerName,
-        customerPhone,
-        customerEmail,
-        deliveryCountry,
-        deliveryCity,
-        deliveryAddress,
-        notes,
-        items: orderItems
+        shippingAddress: {
+          recipientName: recipientName.trim(),
+          phone: phone.trim(),
+          country: country.trim(),
+          stateRegion: stateRegion.trim() || null,
+          city: city.trim(),
+          addressLine: addressLine.trim(),
+          postalCode: postalCode.trim() || null,
+          deliveryInstructions: deliveryInstructions.trim() || null
+        },
+        shippingMethodId: selectedShippingId,
+        items: cart.map(item => ({
+          productId: item.productId,
+          selectedSize: item.selectedSize,
+          selectedColour: item.selectedColour || null,
+          quantity: item.quantity
+        })),
+        saveAddress
       };
 
-      const res = await api.createOrder(payload);
-      if (res.success) {
-        setOrderSuccess(res.order);
-        
-        // Track the click event in the DB
-        try {
-          await api.adminTrackWhatsapp(res.order.id);
-        } catch (e) {
-          console.error("Failed to track whatsapp click:", e);
-        }
+      const res = await api.initializeCheckout(payload);
 
-        // Open WhatsApp in new tab
-        window.open(res.order.whatsappUrl, '_blank');
-        
-        // Clear local storage guest cart
-        clearCart();
-        
-        toast("Order enquiry registered successfully.", "success");
+      if (res.success && res.paymentLink) {
+        // Redirect to Flutterwave Standard secure checkout
+        window.location.href = res.paymentLink;
+      } else {
+        toast("Unable to initialize payment gateway. Please try again.", "error");
       }
     } catch (err: any) {
-      toast(err.message || "Failed to submit order checkout.", "error");
+      toast(err.message || "Checkout failed. Please verify your order.", "error");
     } finally {
-      setCheckingOut(false);
+      setInitializingPayment(false);
     }
   };
 
-  const handleCopyMessage = () => {
-    if (orderSuccess?.whatsappUrl) {
-      // Decode the text query parameter to copy just the message
-      const urlObj = new URL(orderSuccess.whatsappUrl);
-      const msg = urlObj.searchParams.get('text') || '';
-      navigator.clipboard.writeText(msg);
-      setCopied(true);
-      toast("WhatsApp message copied to clipboard.", "success");
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const formatPrice = (price: number) => {
-    return '₦' + price.toLocaleString('en-NG', { minimumFractionDigits: 2 });
-  };
-
-  // SUCCESS STATE VIEW
-  if (orderSuccess) {
-    return (
-      <PageTransition>
-        <div className="max-w-md mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
-        <div className="w-16 h-16 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 flex items-center justify-center rounded-none shadow-md">
-          <ShoppingBag size={28} />
-        </div>
-        <h1 className="text-3xl font-bold uppercase tracking-wide">Order Enquiry Created</h1>
-        <div className="text-xs uppercase tracking-widest text-neutral-400 font-mono">
-          Ref: {orderSuccess.orderReference}
-        </div>
-        <p className="text-sm text-neutral-500 leading-relaxed font-light">
-          Your ARGYR footwear order has been registered. If the browser did not automatically open WhatsApp, click the button below to message us directly.
-        </p>
-
-        <div className="flex flex-col gap-2 w-full mt-4">
-          <a
-            href={orderSuccess.whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-8 py-4 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold uppercase tracking-widest hover:opacity-85 transition-opacity flex items-center justify-center gap-2 w-full"
-          >
-            <MessageSquare size={14} />
-            <span>Open WhatsApp Chat</span>
-          </a>
-
-          <button
-            onClick={handleCopyMessage}
-            className="px-8 py-3.5 border-thin text-xs font-bold uppercase tracking-widest hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors flex items-center justify-center gap-2 w-full cursor-pointer"
-          >
-            {copied ? <ClipboardCheck size={14} /> : <Clipboard size={14} />}
-            <span>{copied ? "Copied" : "Copy Order Message"}</span>
-          </button>
-        </div>
-      </div>
-      </PageTransition>
-    );
-  }
-
-  // EMPTY BAG STATE VIEW
+  // EMPTY BAG STATE
   if (cart.length === 0) {
     return (
       <PageTransition>
-        <div className="max-w-md mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
-        <div className="w-12 h-12 text-neutral-300 dark:text-neutral-700 flex items-center justify-center">
-          <ShoppingBag size={32} />
+        <div className="max-w-md mx-auto px-6 py-28 text-center flex flex-col items-center gap-6">
+          <div className="w-16 h-16 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400">
+            <ShoppingBag size={28} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold uppercase tracking-wider text-neutral-900 dark:text-white">
+              Your Bag is Empty
+            </h1>
+            <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
+              Explore our handcrafted collections and discover exceptional footwear tailored to distinction.
+            </p>
+          </div>
+          <Link
+            to="/shop"
+            className="px-8 py-3.5 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold uppercase tracking-widest hover:opacity-85 transition-opacity"
+          >
+            Explore Collection
+          </Link>
         </div>
-        <h2 className="text-2xl font-bold uppercase tracking-wide">Your bag is empty</h2>
-        <p className="text-xs text-neutral-400 leading-relaxed font-light max-w-xs">
-          Explore our seasonal sneakers, hand-welted formal oxfords, suedes loafers, and boots collections to find your perfect fit.
-        </p>
-        <Link
-          to="/shop"
-          className="mt-2 px-8 py-4 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold uppercase tracking-widest hover:opacity-85 transition-opacity"
-        >
-          Browse Collection
-        </Link>
-      </div>
       </PageTransition>
     );
   }
 
   return (
     <PageTransition>
-      <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-8">
-      
-      {/* Title */}
-      <div className="border-thin-b pb-6">
-        <h1 className="text-3xl font-bold uppercase tracking-wide">Shopping Bag</h1>
-        <span className="text-xs text-neutral-400">Review {cartCount} items in your bag</span>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-        
-        {/* LEFT COLUMN: ITEMS LIST (SPAN 7) */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
-          {cart.map(item => {
-            const isBulk = item.bulkPrice !== null && item.quantity >= item.bulkMinimumQuantity;
-            const itemPrice = isBulk && item.bulkPrice ? item.bulkPrice : item.price;
-            const subtotal = itemPrice * item.quantity;
-
-            return (
-              <div 
-                key={`${item.productId}-${item.selectedSize}`}
-                className="flex gap-4 p-4 bg-white dark:bg-neutral-900 border-thin"
-              >
-                {/* Thumbnail */}
-                <div className="w-20 aspect-[4/5] bg-neutral-100 dark:bg-neutral-800 border-thin shrink-0 overflow-hidden">
-                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                </div>
-
-                {/* Details */}
-                <div className="flex-grow flex flex-col justify-between">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex flex-col gap-0.5">
-                      <h3 className="text-sm font-semibold text-neutral-950 dark:text-white hover:text-brand-clay dark:hover:text-brand-gold">
-                        <Link to={`/shop/${item.slug}`}>{item.name}</Link>
-                      </h3>
-                      <span className="text-[10px] text-neutral-400 tracking-wider">SKU: {item.sku}</span>
-                      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-300 mt-1">Size: {item.selectedSize}</span>
-                    </div>
-
-                    {/* Remove Icon */}
-                    <button
-                      onClick={() => removeFromCart(item.productId, item.selectedSize)}
-                      className="p-1 hover:text-red-500 text-neutral-400 transition-colors cursor-pointer"
-                      title="Remove item"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-
-                  <div className="flex justify-between items-baseline mt-2">
-                    {/* Quantity controls */}
-                    <div className="flex items-center border-thin text-xs">
-                      <button
-                        onClick={() => updateQuantity(item.productId, item.selectedSize, item.quantity - 1)}
-                        className="px-2.5 py-1 text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
-                      >
-                        -
-                      </button>
-                      <span className="px-3 font-bold font-mono">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.productId, item.selectedSize, item.quantity + 1)}
-                        className="px-2.5 py-1 text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    {/* Price and Subtotal */}
-                    <div className="flex flex-col items-end gap-0.5">
-                      {isBulk && (
-                        <span className="text-[9px] bg-brand-clay text-white px-1.5 py-0.5 font-bold uppercase tracking-wider scale-95 shrink-0">
-                          Bulk rate applied
-                        </span>
-                      )}
-                      <span className="text-[10px] text-neutral-400">
-                        {item.quantity} x {formatPrice(itemPrice)}
-                      </span>
-                      <span className="text-xs font-bold text-neutral-950 dark:text-white">
-                        {formatPrice(subtotal)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex flex-col gap-2 mb-8">
+          <span className="text-[10px] uppercase tracking-[0.3em] font-editorial text-neutral-400 font-bold">
+            CHECKOUT
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold uppercase tracking-wider text-neutral-900 dark:text-white">
+            Shopping Bag ({cartCount})
+          </h1>
         </div>
 
-        {/* RIGHT COLUMN: GUEST CHECKOUT DETAILS (SPAN 5) */}
-        <div className="lg:col-span-5 bg-white dark:bg-neutral-900 border-thin p-6 flex flex-col gap-6">
-          <h3 className="text-xs uppercase tracking-widest font-bold text-neutral-900 dark:text-white border-b-[0.5px] pb-3 border-neutral-200 dark:border-neutral-800">
-            Order Review & Guest Checkout
-          </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+          {/* LEFT COLUMN: CART ITEMS & DELIVERY FORM (SPAN 7) */}
+          <div className="lg:col-span-7 flex flex-col gap-8">
+            {/* 1. CART ITEMS REVIEW */}
+            <div className="bg-white dark:bg-neutral-900 border-[0.5px] border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
+              <h2 className="text-xs uppercase tracking-[0.2em] font-bold text-neutral-400 mb-6">
+                Selected Footwear
+              </h2>
 
-          {/* Pricing Summary */}
-          <div className="flex flex-col gap-2 text-xs border-b-[0.5px] pb-4 border-neutral-200 dark:border-neutral-800">
-            <div className="flex justify-between text-neutral-500">
-              <span>Bag Subtotal</span>
-              <span>{formatPrice(cartSubtotal)}</span>
+              <div className="flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800">
+                {cart.map(item => (
+                  <div key={`${item.productId}-${item.selectedSize}`} className="py-4 flex gap-4 items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 border-[0.5px] border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950 overflow-hidden shrink-0">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-neutral-400 font-bold">
+                            ARG
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-bold text-neutral-900 dark:text-white uppercase tracking-wider">
+                          {item.name}
+                        </h3>
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                          Size: <strong className="text-neutral-700 dark:text-neutral-300">{item.selectedSize}</strong>
+                          {item.selectedColour ? ` | Colour: ${item.selectedColour}` : ''}
+                        </p>
+                        <span className="text-xs font-semibold text-neutral-900 dark:text-white mt-1 block">
+                          {formatPrice(item.bulkPrice && item.quantity >= item.bulkMinimumQuantity ? item.bulkPrice : item.price)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      {/* Quantity Selector */}
+                      <div className="flex items-center border-[0.5px] border-neutral-300 dark:border-neutral-700 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.productId, item.selectedSize, item.quantity - 1)}
+                          className="px-2.5 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={11} />
+                        </button>
+                        <span className="px-3 font-semibold text-neutral-900 dark:text-white">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.productId, item.selectedSize, item.quantity + 1)}
+                          className="px-2.5 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={11} />
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.productId, item.selectedSize)}
+                        className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                        title="Remove item"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex justify-between text-neutral-500">
-              <span>Delivery Cost</span>
-              <span className="italic text-[10px]">TBD on WhatsApp</span>
-            </div>
-            <div className="flex justify-between font-bold text-sm text-neutral-950 dark:text-white mt-1">
-              <span>Estimated Total</span>
-              <span>{formatPrice(cartSubtotal)}</span>
-            </div>
+
+            {/* 2. AUTHENTICATION GATE / DELIVERY DETAILS */}
+            {!isAuthenticated ? (
+              <div className="bg-white dark:bg-neutral-900 border-[0.5px] border-neutral-200 dark:border-neutral-800 p-8 text-center flex flex-col items-center gap-4 shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-900 dark:text-white">
+                  <Lock size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold uppercase tracking-wider text-neutral-900 dark:text-white">
+                    Sign In Required for Checkout
+                  </h3>
+                  <p className="text-xs text-neutral-500 mt-1 max-w-sm">
+                    Please log in or create your customer account to enter delivery details and complete your secure payment. Your bag items will be saved.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center gap-3 mt-2 w-full max-w-xs">
+                  <button
+                    type="button"
+                    onClick={() => openAuthModal('login')}
+                    className="w-full py-3 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openAuthModal('register')}
+                    className="w-full py-3 border-[0.5px] border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white text-xs uppercase tracking-widest font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  >
+                    Register
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* AUTHENTICATED DELIVERY FORM */
+              <form id="checkout-form" onSubmit={handleCheckoutPayment} className="flex flex-col gap-8">
+                <div className="bg-white dark:bg-neutral-900 border-[0.5px] border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xs uppercase tracking-[0.2em] font-bold text-neutral-400 flex items-center gap-2">
+                      <MapPin size={14} />
+                      <span>Delivery Information</span>
+                    </h2>
+                    <span className="text-[10px] text-green-600 dark:text-green-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <CheckCircle2 size={12} />
+                      <span>Signed In</span>
+                    </span>
+                  </div>
+
+                  {/* Saved Address Selector */}
+                  {savedAddresses.length > 0 && (
+                    <div className="mb-4 pb-4 border-b-[0.5px] border-neutral-100 dark:border-neutral-800">
+                      <label className="text-[10px] uppercase tracking-wider font-bold text-neutral-500 block mb-1.5">
+                        Select From Saved Addresses
+                      </label>
+                      <select
+                        value={selectedAddressId}
+                        onChange={(e) => handleSavedAddressChange(e.target.value)}
+                        className="w-full bg-neutral-50 dark:bg-neutral-950 border-[0.5px] border-neutral-300 dark:border-neutral-700 py-2 px-3 text-xs text-neutral-900 dark:text-white outline-none"
+                      >
+                        {savedAddresses.map(addr => (
+                          <option key={addr.id} value={addr.id}>
+                            {addr.recipientName} - {addr.addressLine}, {addr.city} ({addr.country})
+                          </option>
+                        ))}
+                        <option value="new">+ Enter a different delivery address</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase tracking-wider font-bold text-neutral-500">Recipient Name</label>
+                        <input
+                          type="text"
+                          value={recipientName}
+                          onChange={(e) => setRecipientName(e.target.value)}
+                          required
+                          placeholder="Full recipient name"
+                          className="w-full bg-neutral-50 dark:bg-neutral-950 border-[0.5px] border-neutral-300 dark:border-neutral-700 py-2 px-3 text-xs text-neutral-900 dark:text-white outline-none"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase tracking-wider font-bold text-neutral-500">Contact Phone</label>
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          required
+                          placeholder="+234..."
+                          className="w-full bg-neutral-50 dark:bg-neutral-950 border-[0.5px] border-neutral-300 dark:border-neutral-700 py-2 px-3 text-xs text-neutral-900 dark:text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase tracking-wider font-bold text-neutral-500">Street Address</label>
+                      <input
+                        type="text"
+                        value={addressLine}
+                        onChange={(e) => setAddressLine(e.target.value)}
+                        required
+                        placeholder="House / Apartment, Street, Landmark"
+                        className="w-full bg-neutral-50 dark:bg-neutral-950 border-[0.5px] border-neutral-300 dark:border-neutral-700 py-2 px-3 text-xs text-neutral-900 dark:text-white outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase tracking-wider font-bold text-neutral-500">City</label>
+                        <input
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          required
+                          placeholder="e.g. Lagos"
+                          className="w-full bg-neutral-50 dark:bg-neutral-950 border-[0.5px] border-neutral-300 dark:border-neutral-700 py-2 px-3 text-xs text-neutral-900 dark:text-white outline-none"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase tracking-wider font-bold text-neutral-500">State / Region</label>
+                        <input
+                          type="text"
+                          value={stateRegion}
+                          onChange={(e) => setStateRegion(e.target.value)}
+                          placeholder="e.g. Lagos State"
+                          className="w-full bg-neutral-50 dark:bg-neutral-950 border-[0.5px] border-neutral-300 dark:border-neutral-700 py-2 px-3 text-xs text-neutral-900 dark:text-white outline-none"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase tracking-wider font-bold text-neutral-500">Country</label>
+                        <input
+                          type="text"
+                          value={country}
+                          onChange={(e) => setCountry(e.target.value)}
+                          required
+                          placeholder="Nigeria"
+                          className="w-full bg-neutral-50 dark:bg-neutral-950 border-[0.5px] border-neutral-300 dark:border-neutral-700 py-2 px-3 text-xs text-neutral-900 dark:text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase tracking-wider font-bold text-neutral-500">
+                        Delivery Instructions (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={deliveryInstructions}
+                        onChange={(e) => setDeliveryInstructions(e.target.value)}
+                        placeholder="Gate code, specific delivery hour preference, etc."
+                        className="w-full bg-neutral-50 dark:bg-neutral-950 border-[0.5px] border-neutral-300 dark:border-neutral-700 py-2 px-3 text-xs text-neutral-900 dark:text-white outline-none"
+                      />
+                    </div>
+
+                    {selectedAddressId === 'new' && (
+                      <label className="flex items-center gap-2 cursor-pointer mt-1">
+                        <input
+                          type="checkbox"
+                          checked={saveAddress}
+                          onChange={(e) => setSaveAddress(e.target.checked)}
+                          className="w-3.5 h-3.5 accent-neutral-900 dark:accent-white"
+                        />
+                        <span className="text-[11px] text-neutral-500">
+                          Save this address to my account for future orders.
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. SHIPPING METHOD SELECTION */}
+                <div className="bg-white dark:bg-neutral-900 border-[0.5px] border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
+                  <h2 className="text-xs uppercase tracking-[0.2em] font-bold text-neutral-400 mb-4 flex items-center gap-2">
+                    <Truck size={14} />
+                    <span>Select Shipping Region</span>
+                  </h2>
+
+                  <div className="flex flex-col gap-3">
+                    {shippingMethods.map(method => {
+                      const isSelected = method.id === selectedShippingId;
+                      return (
+                        <label
+                          key={method.id}
+                          className={`border-[0.5px] p-4 flex items-center justify-between cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'border-neutral-900 dark:border-white bg-neutral-50/50 dark:bg-neutral-950/50'
+                              : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-400'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="shippingMethod"
+                              checked={isSelected}
+                              onChange={() => setSelectedShippingId(method.id)}
+                              className="accent-neutral-900 dark:accent-white"
+                            />
+                            <div>
+                              <span className="text-xs uppercase font-bold text-neutral-900 dark:text-white tracking-wider block">
+                                {method.name}
+                              </span>
+                              {method.description && (
+                                <span className="text-[11px] text-neutral-400 mt-0.5 block">
+                                  {method.description}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <span className="text-xs font-bold text-neutral-900 dark:text-white">
+                            {formatPrice(method.price)}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </form>
+            )}
           </div>
 
-          {/* Customer checkout inputs form */}
-          <form onSubmit={handleSubmitCheckout} className="flex flex-col gap-4">
-            <h4 className="text-[10px] uppercase tracking-widest font-bold text-brand-clay dark:text-brand-gold">
-              01. Delivery Details
-            </h4>
-            
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] uppercase font-bold text-neutral-500">Full Name</label>
-              <input
-                type="text"
-                placeholder="e.g. John Doe"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="bg-transparent border-thin px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none w-full"
-                required
-              />
-            </div>
+          {/* RIGHT COLUMN: ORDER SUMMARY & FLUTTERWAVE CTA (SPAN 5) */}
+          <div className="lg:col-span-5 bg-white dark:bg-neutral-900 border-[0.5px] border-neutral-200 dark:border-neutral-800 p-8 shadow-sm flex flex-col gap-6 sticky top-28">
+            <h2 className="text-xs uppercase tracking-[0.2em] font-bold text-neutral-400">
+              Order Summary
+            </h2>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] uppercase font-bold text-neutral-500">WhatsApp Phone Number</label>
-              <input
-                type="tel"
-                placeholder="e.g. +2348012345678"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                className="bg-transparent border-thin px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none w-full"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] uppercase font-bold text-neutral-500">Email (Optional)</label>
-              <input
-                type="email"
-                placeholder="e.g. john@example.com"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                className="bg-transparent border-thin px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none w-full"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] uppercase font-bold text-neutral-500">Country</label>
-                <input
-                  type="text"
-                  placeholder="Nigeria"
-                  value={deliveryCountry}
-                  onChange={(e) => setDeliveryCountry(e.target.value)}
-                  className="bg-transparent border-thin px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none w-full"
-                  required
-                />
+            <div className="flex flex-col gap-3 text-xs">
+              <div className="flex justify-between text-neutral-500">
+                <span>Items Subtotal</span>
+                <span className="text-neutral-900 dark:text-white font-medium">{formatPrice(cartSubtotal)}</span>
               </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] uppercase font-bold text-neutral-500">City</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Lagos"
-                  value={deliveryCity}
-                  onChange={(e) => setDeliveryCity(e.target.value)}
-                  className="bg-transparent border-thin px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none w-full"
-                  required
-                />
+              <div className="flex justify-between text-neutral-500">
+                <span>Shipping ({selectedShipping?.name || 'Region'})</span>
+                <span className="text-neutral-900 dark:text-white font-medium">{formatPrice(shippingFee)}</span>
+              </div>
+
+              <div className="pt-4 border-t-[0.5px] border-neutral-200 dark:border-neutral-800 flex justify-between items-baseline">
+                <span className="text-sm font-bold uppercase tracking-wider text-neutral-900 dark:text-white">
+                  Total
+                </span>
+                <span className="text-xl font-bold text-neutral-900 dark:text-white">
+                  {formatPrice(grandTotal)}
+                </span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] uppercase font-bold text-neutral-500">Delivery Address</label>
-              <input
-                type="text"
-                placeholder="Street address, apartment details"
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                className="bg-transparent border-thin px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none w-full"
-                required
-              />
+            {/* Estimated Delivery Timeframe communication */}
+            <div className="bg-neutral-50 dark:bg-neutral-950 p-4 border-[0.5px] border-neutral-200 dark:border-neutral-800 flex items-center gap-3 text-xs text-neutral-600 dark:text-neutral-400">
+              <Truck size={18} className="shrink-0 text-neutral-900 dark:text-white" />
+              <div>
+                <span className="font-bold text-neutral-900 dark:text-white block">
+                  Estimated Delivery: {deliveryTimeframe}
+                </span>
+                <span className="text-[10px] text-neutral-400">
+                  Custom handcrafted and inspected prior to dispatch.
+                </span>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] uppercase font-bold text-neutral-500">Special Notes (Optional)</label>
-              <textarea
-                placeholder="Preferred delivery time, custom sizing notices..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="bg-transparent border-thin px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none w-full h-16 resize-none"
-              />
+            {/* Main Action Button */}
+            {isAuthenticated ? (
+              <button
+                type="submit"
+                form="checkout-form"
+                disabled={initializingPayment}
+                className="w-full py-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-neutral-950 text-xs uppercase tracking-widest font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md"
+              >
+                {initializingPayment ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Connecting to Flutterwave...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={14} />
+                    <span>Pay with Flutterwave • {formatPrice(grandTotal)}</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openAuthModal('login')}
+                className="w-full py-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-neutral-950 text-xs uppercase tracking-widest font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              >
+                <Lock size={14} />
+                <span>Sign In to Complete Purchase</span>
+              </button>
+            )}
+
+            <div className="flex flex-col gap-2 pt-2 border-t-[0.5px] border-neutral-100 dark:border-neutral-800 text-[11px] text-neutral-400">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={14} className="text-green-600 dark:text-green-400" />
+                <span>256-bit encrypted checkout powered by Flutterwave</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CreditCard size={14} />
+                <span>Supports Visa, Mastercard, Bank Transfer & Verve</span>
+              </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={checkingOut}
-              className="mt-4 py-4 bg-brand-clay text-white text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer w-full"
-            >
-              {checkingOut ? (
-                <>
-                  <Loader2 className="animate-spin" size={14} />
-                  <span>Processing order...</span>
-                </>
-              ) : (
-                <>
-                  <MessageSquare size={14} />
-                  <span>Checkout on WhatsApp</span>
-                </>
-              )}
-            </button>
-          </form>
+            {/* Contextual WhatsApp Consultation */}
+            <div className="pt-2 text-center">
+              <a
+                href="https://wa.me/2348000000000?text=Hello%20ARGYR,%20I%20have%20questions%20regarding%20my%20bag%20and%20checkout."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              >
+                <MessageSquare size={13} />
+                <span>Questions? Chat with Concierge on WhatsApp</span>
+              </a>
+            </div>
+          </div>
         </div>
-
       </div>
-    </div>
     </PageTransition>
   );
 };
