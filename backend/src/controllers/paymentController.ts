@@ -140,13 +140,11 @@ export async function initializeCheckout(req: AuthenticatedCustomerRequest, res:
         });
       }
 
-      // Generate pre-filled WhatsApp message snapshot
-      const fullOrder = await tx.order.findUnique({
-        where: { id: order.id },
-        include: { items: true }
-      });
-
-      const whatsappMessage = formatOrderWhatsAppMessage(fullOrder as any);
+      // Generate pre-filled WhatsApp message snapshot without extra round-trip
+      const whatsappMessage = formatOrderWhatsAppMessage({
+        ...order,
+        items: orderItemsData as any
+      } as any);
 
       await tx.order.update({
         where: { id: order.id },
@@ -154,6 +152,9 @@ export async function initializeCheckout(req: AuthenticatedCustomerRequest, res:
       });
 
       return { createdOrder: order, createdPayment: payment };
+    }, {
+      maxWait: 10000,
+      timeout: 30000
     });
 
     // 5. Initialize Flutterwave payment
@@ -346,6 +347,9 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
       }
 
       return confirmedOrder;
+    }, {
+      maxWait: 10000,
+      timeout: 30000
     });
 
     // 5. Trigger transactional emails asynchronously (safe error handling)
@@ -487,6 +491,9 @@ export async function handleWebhook(req: Request, res: Response, next: NextFunct
 
           // Trigger emails
           sendOrderConfirmationEmail(confirmedOrder, confirmedOrder.customer).catch(console.error);
+        }, {
+          maxWait: 10000,
+          timeout: 30000
         });
 
         console.log(`[Webhook] Successfully processed payment and confirmed order for tx_ref: ${txRef}`);

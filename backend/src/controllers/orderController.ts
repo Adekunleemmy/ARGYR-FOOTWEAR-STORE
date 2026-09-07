@@ -88,6 +88,9 @@ export async function createOrderEnquiry(req: Request, res: Response, next: Next
         data: { whatsappMessage: formattedMsg },
         include: { items: true }
       });
+    }, {
+      maxWait: 10000,
+      timeout: 30000
     });
 
     // 4. Retrieve settings for current store WhatsApp number
