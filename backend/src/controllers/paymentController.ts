@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 import prisma from '../lib/prisma';
-import { config } from '../config';
+import { config, getFrontendUrl } from '../config';
 import { AuthenticatedCustomerRequest } from '../middleware/customerAuth';
 import { CheckoutInitializeSchema } from '../schemas/zodSchemas';
 import { calculateOrderPricing } from '../services/pricingService';
@@ -158,7 +158,8 @@ export async function initializeCheckout(req: AuthenticatedCustomerRequest, res:
     });
 
     // 5. Initialize Flutterwave payment
-    const redirectUrl = `${config.FRONTEND_URL}/checkout/confirm`;
+    const baseUrl = getFrontendUrl(req);
+    const redirectUrl = `${baseUrl}/checkout/confirm`;
 
     const flwResponse = await initializeFlutterwavePayment({
       tx_ref: transactionReference,

@@ -1,5 +1,5 @@
 import nodemailer, { Transporter } from 'nodemailer';
-import { config } from '../config';
+import { config, getFrontendUrl } from '../config';
 
 // Initialize nodemailer transporter if configured
 let transporter: Transporter | null = null;
@@ -224,7 +224,7 @@ export async function sendOtpEmail(to: string, firstName: string, otp: string) {
  * 2. Customer Password Reset email
  */
 export async function sendPasswordResetEmail(to: string, firstName: string, resetToken: string) {
-  const resetUrl = `${config.FRONTEND_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(to)}`;
+  const resetUrl = `${getFrontendUrl()}/reset-password?token=${resetToken}&email=${encodeURIComponent(to)}`;
   
   const content = `
     <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-top: 0;">Password Reset Request</h2>
@@ -267,7 +267,7 @@ export async function sendOrderConfirmationEmail(order: any, customer: any) {
     )
     .join('');
 
-  const orderUrl = `${config.FRONTEND_URL}/account/orders/${order.id}`;
+  const orderUrl = `${getFrontendUrl()}/account/orders/${order.id}`;
 
   const content = `
     <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-top: 0;">Order Confirmed</h2>
@@ -336,7 +336,7 @@ export async function sendOrderConfirmationEmail(order: any, customer: any) {
 export async function sendAdminOrderNotificationEmail(order: any, recipients: string[]) {
   if (!recipients || recipients.length === 0) return;
 
-  const adminOrderUrl = `${config.FRONTEND_URL}/admin/dashboard/orders`;
+  const adminOrderUrl = `${getFrontendUrl()}/admin/dashboard/orders`;
 
   const content = `
     <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-top: 0;">New Paid Purchase Alert</h2>
@@ -376,7 +376,7 @@ export async function sendOrderStatusUpdateEmail(order: any, customer: any, newS
   };
 
   const statusDisplay = statusLabels[newStatus] || newStatus;
-  const orderUrl = `${config.FRONTEND_URL}/account/orders/${order.id}`;
+  const orderUrl = `${getFrontendUrl()}/account/orders/${order.id}`;
 
   const content = `
     <h2 style="font-size: 20px; font-weight: 600; color: #ffffff; margin-top: 0;">Order Status Update</h2>

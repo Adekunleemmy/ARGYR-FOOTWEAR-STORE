@@ -44,3 +44,37 @@ export const config = {
     isConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
   }
 };
+
+/**
+ * Resolves a single, valid frontend URL.
+ * If a request object is passed, it checks the incoming Origin/Referer against allowed origins,
+ * ensuring users on 'www.argyrworldwide.com' return to 'www.argyrworldwide.com' and users on 'argyrworldwide.com' return to 'argyrworldwide.com'.
+ * In absence of a request (or non-matching origin), cleanly falls back to the first URL in FRONTEND_URL.
+ */
+export function getFrontendUrl(req?: { headers?: { origin?: string; referer?: string } }): string {
+  const raw = config.FRONTEND_URL || '';
+  const allowed = raw
+    .split(',')
+    .map(url => url.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  if (req?.headers) {
+    const origin = (req.headers.origin || '').trim().replace(/\/$/, '');
+    if (origin && (allowed.includes(origin) || allowed.includes('*') || /^https?:\/\/([a-zA-Z0-9-]+\.)?argyrworldwide\.com$/.test(origin))) {
+      return origin;
+    }
+    const referer = (req.headers.referer || '').trim();
+    if (referer) {
+      try {
+        const parsed = new URL(referer).origin.replace(/\/$/, '');
+        if (allowed.includes(parsed) || /^https?:\/\/([a-zA-Z0-9-]+\.)?argyrworldwide\.com$/.test(parsed)) {
+          return parsed;
+        }
+      } catch {
+        // Ignore invalid URL
+      }
+    }
+  }
+
+  return allowed[0] || 'http://localhost:5173';
+}
