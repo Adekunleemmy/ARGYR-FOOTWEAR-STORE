@@ -34,12 +34,15 @@ export const ProductDetail: React.FC = () => {
           setSelectedSize('');
           setQuantity(1);
 
-          // Fetch related products (same category)
-          const relatedRes = await api.getProducts({ category: res.product.category.slug });
-          if (relatedRes.success) {
-            // Filter out current product
-            const filtered = relatedRes.products.filter((p: any) => p.id !== res.product.id);
-            setRelatedProducts(filtered.slice(0, 3)); // show max 3
+          if (res.relatedProducts && res.relatedProducts.length > 0) {
+            setRelatedProducts(res.relatedProducts.slice(0, 3));
+          } else if (res.product?.category?.slug) {
+            // Fallback fetch if not bundled
+            const relatedRes = await api.getProducts({ category: res.product.category.slug });
+            if (relatedRes.success) {
+              const filtered = relatedRes.products.filter((p: any) => p.id !== res.product.id);
+              setRelatedProducts(filtered.slice(0, 3));
+            }
           }
         }
       } catch (err) {

@@ -1,74 +1,94 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, ProductStatus, Gender } from '@prisma/client';
+import { ProductStatus, Gender } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { ProductSchema } from '../schemas/zodSchemas';
 import { uploadToCloudinary } from '../utils/cloudinaryHelper';
-
-const prisma = new PrismaClient();
+import { withCache, invalidateCache, getCached, setCache } from '../utils/cache';
 
 /**
- * Public: Browse active products with filtering, search, and sorting
+ * Public: Browse active products with filtering, search, and sorting (Cached for 60s)
  */
 export async function getCatalogProducts(req: Request, res: Response, next: NextFunction) {
   try {
     const { category, gender, size, minPrice, maxPrice, search, sort, featured, newArrival, bestSeller } = req.query;
 
-    const whereClause: any = {
-      // Exclude DRAFT and ARCHIVED from public view
-      status: { in: [ProductStatus.ACTIVE, ProductStatus.OUT_OF_STOCK] }
-    };
+    const cacheKey = 'products:catalog:' + JSON.stringify(req.query);
 
-    if (category) {
-      whereClause.category = { slug: String(category) };
-    }
+    const products = await withCache(cacheKey, 60, async () => {
+      const whereClause: any = {
+        // Exclude DRAFT and ARCHIVED from public view
+        status: { in: [ProductStatus.ACTIVE, ProductStatus.OUT_OF_STOCK] }
+      };
 
-    if (gender) {
-      whereClause.gender = gender as Gender;
-    }
+      if (category) {
+        whereClause.category = { slug: String(category) };
+      }
 
-    if (size) {
-      whereClause.sizes = { has: String(size) };
-    }
+      if (gender) {
+        whereClause.gender = gender as Gender;
+      }
 
-    if (minPrice || maxPrice) {
-      whereClause.price = {};
-      if (minPrice) whereClause.price.gte = Number(minPrice);
-      if (maxPrice) whereClause.price.lte = Number(maxPrice);
-    }
+      if (size) {
+        whereClause.sizes = { has: String(size) };
+      }
 
-    if (featured === 'true') whereClause.featured = true;
-    if (newArrival === 'true') whereClause.newArrival = true;
-    if (bestSeller === 'true') whereClause.bestSeller = true;
+      if (minPrice || maxPrice) {
+        whereClause.price = {};
+        if (minPrice) whereClause.price.gte = Number(minPrice);
+        if (maxPrice) whereClause.price.lte = Number(maxPrice);
+      }
 
-    if (search) {
-      const q = String(search);
-      whereClause.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-        { shortDescription: { contains: q, mode: 'insensitive' } },
-        { sku: { contains: q, mode: 'insensitive' } },
-        { material: { contains: q, mode: 'insensitive' } },
-        { collection: { contains: q, mode: 'insensitive' } }
-      ];
-    }
+      if (featured === 'true') whereClause.featured = true;
+      if (newArrival === 'true') whereClause.newArrival = true;
+      if (bestSeller === 'true') whereClause.bestSeller = true;
 
-    // Handle sorting
-    let orderBy: any = { createdAt: 'desc' }; // default: newest
-    if (sort) {
-      if (sort === 'price_asc') orderBy = { price: 'asc' };
-      else if (sort === 'price_desc') orderBy = { price: 'desc' };
-      else if (sort === 'name_asc') orderBy = { name: 'asc' };
-      else if (sort === 'name_desc') orderBy = { name: 'desc' };
-    }
+      if (search) {
+        const q = String(search);
+        whereClause.OR = [
+          { name: { contains: q, mode: 'insensitive' } },
+          { description: { contains: q, mode: 'insensitive' } },
+          { shortDescription: { contains: q, mode: 'insensitive' } },
+          { sku: { contains: q, mode: 'insensitive' } },
+          { material: { contains: q, mode: 'insensitive' } },
+          { collection: { contains: q, mode: 'insensitive' } }
+        ];
+      }
 
-    const products = await prisma.product.findMany({
-      where: whereClause,
-      include: {
-        category: true,
-        images: { orderBy: { sortOrder: 'asc' } }
-      },
-      orderBy
+      // Handle sorting
+      let orderBy: any = { createdAt: 'desc' }; // default: newest
+      if (sort) {
+        if (sort === 'price_asc') orderBy = { price: 'asc' };
+        else if (sort === 'price_desc') orderBy = { price: 'desc' };
+        else if (sort === 'name_asc') orderBy = { name: 'asc' };
+        else if (sort === 'name_desc') orderBy = { name: 'desc' };
+      }
+
+      return prisma.product.findMany({
+        where: whereClause,
+        include: {
+          category: true,
+          images: { orderBy: { sortOrder: 'asc' } }
+        },
+        orderBy
+      });
     });
 
+    // Pre-warm individual detail caches so subsequent single-product fetches are instant
+    if (products && Array.isArray(products)) {
+      for (const p of products) {
+        if (p && p.slug) {
+          const detailKey = `products:detail:${p.slug}`;
+          if (!getCached(detailKey)) {
+            const relatedProducts = products
+              .filter(r => r.categoryId === p.categoryId && r.id !== p.id)
+              .slice(0, 4);
+            setCache(detailKey, { product: p, relatedProducts }, 60);
+          }
+        }
+      }
+    }
+
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.status(200).json({ success: true, products });
   } catch (err) {
     next(err);
@@ -76,27 +96,58 @@ export async function getCatalogProducts(req: Request, res: Response, next: Next
 }
 
 /**
- * Public: Get single product details by slug
+ * Public: Get single product details by slug, bundled with related category products
  */
 export async function getProductDetails(req: Request, res: Response, next: NextFunction) {
   try {
     const { slug } = req.params;
-    const product = await prisma.product.findFirst({
-      where: {
-        slug,
-        status: { in: [ProductStatus.ACTIVE, ProductStatus.OUT_OF_STOCK] }
-      },
-      include: {
-        category: true,
-        images: { orderBy: { sortOrder: 'asc' } }
+    const cacheKey = `products:detail:${slug}`;
+
+    const data = await withCache(cacheKey, 60, async () => {
+      const productWithRelated = await prisma.product.findUnique({
+        where: { slug },
+        include: {
+          images: { orderBy: { sortOrder: 'asc' } },
+          category: {
+            include: {
+              products: {
+                where: {
+                  slug: { not: slug },
+                  status: { in: [ProductStatus.ACTIVE, ProductStatus.OUT_OF_STOCK] }
+                },
+                include: {
+                  category: true,
+                  images: { orderBy: { sortOrder: 'asc' } }
+                },
+                take: 4
+              }
+            }
+          }
+        }
+      });
+
+      if (!productWithRelated || productWithRelated.status === ProductStatus.ARCHIVED || productWithRelated.status === ProductStatus.DRAFT) {
+        return null;
       }
+
+      const { category, ...productRest } = productWithRelated;
+      const relatedProducts = (category as any)?.products || [];
+      const { products: _unused, ...cleanedCategory } = (category as any) || {};
+
+      const product = {
+        ...productRest,
+        category: cleanedCategory
+      };
+
+      return { product, relatedProducts };
     });
 
-    if (!product) {
+    if (!data) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    res.status(200).json({ success: true, product });
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    res.status(200).json({ success: true, ...data });
   } catch (err) {
     next(err);
   }
@@ -154,6 +205,8 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
       }
     });
 
+    invalidateCache('products:');
+
     res.status(201).json({ success: true, message: "Product created successfully", product });
   } catch (err) {
     next(err);
@@ -208,6 +261,8 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
       });
     });
 
+    invalidateCache('products:');
+
     res.status(200).json({ success: true, message: "Product updated successfully", product });
   } catch (err) {
     next(err);
@@ -230,6 +285,8 @@ export async function archiveProduct(req: Request, res: Response, next: NextFunc
       where: { id },
       data: { status: ProductStatus.ARCHIVED }
     });
+
+    invalidateCache('products:');
 
     res.status(200).json({ success: true, message: "Product archived successfully", product });
   } catch (err) {

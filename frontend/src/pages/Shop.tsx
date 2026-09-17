@@ -473,6 +473,8 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
     {/* Product Quick-View Modal */}
     <ProductModal
       slug={activeModalSlug}
+      initialProduct={products.find(p => p.slug === activeModalSlug)}
+      allProducts={products}
       onClose={() => setActiveModalSlug(null)}
       onNavigate={(slug) => setActiveModalSlug(slug)}
     />

@@ -14,6 +14,9 @@ if (config.EMAIL.isConfigured) {
         user: config.EMAIL.SMTP_USER,
         pass: config.EMAIL.SMTP_PASS,
       },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 10000,
     });
     console.log(`📧 Email Service: SMTP configured (${config.EMAIL.SMTP_HOST}:${config.EMAIL.SMTP_PORT})`);
   } catch (err: any) {

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
@@ -13,8 +13,7 @@ import {
   CustomerResetPasswordSchema
 } from '../schemas/zodSchemas';
 import { sendOtpEmail, sendPasswordResetEmail } from '../services/emailService';
-
-const prisma = new PrismaClient();
+import { invalidateCache } from '../utils/cache';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -85,8 +84,8 @@ export async function register(req: Request, res: Response, next: NextFunction) 
       });
     }
 
-    // Hash password with bcrypt
-    const passwordHash = await bcrypt.hash(data.password, 12);
+    // Hash password with bcrypt (10 rounds is secure and avoids unnecessary CPU delay)
+    const passwordHash = await bcrypt.hash(data.password, 10);
 
     // Create customer in unverified state
     const customer = await prisma.customer.create({
@@ -118,6 +117,8 @@ export async function register(req: Request, res: Response, next: NextFunction) 
     sendOtpEmail(customer.email, customer.firstName, otpCode).catch(err => {
       console.error("Failed to dispatch registration OTP email:", err);
     });
+
+    invalidateCache('admin:customers');
 
     res.status(201).json({
       success: true,
@@ -494,7 +495,7 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
       });
     }
 
-    const newPasswordHash = await bcrypt.hash(password, 12);
+    const newPasswordHash = await bcrypt.hash(password, 10);
 
     await prisma.$transaction([
       prisma.customer.update({

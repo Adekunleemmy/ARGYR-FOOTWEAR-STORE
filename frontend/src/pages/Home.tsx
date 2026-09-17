@@ -324,6 +324,8 @@ export const Home: React.FC = () => {
     {/* Product Quick-View Modal */}
     <ProductModal
       slug={activeModalSlug}
+      initialProduct={featuredProducts.find(p => p.slug === activeModalSlug)}
+      allProducts={featuredProducts}
       onClose={() => setActiveModalSlug(null)}
       onNavigate={(slug) => setActiveModalSlug(slug)}
     />

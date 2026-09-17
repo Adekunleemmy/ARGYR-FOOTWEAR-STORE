@@ -74,6 +74,7 @@ export async function initializeFlutterwavePayment(payload: FlutterwavePaymentIn
         'Authorization': `Bearer ${secretKey}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(10000),
       body: JSON.stringify({
         ...payload,
         customizations: {
@@ -118,6 +119,7 @@ export async function verifyFlutterwaveTransaction(transactionId: string | numbe
         'Authorization': `Bearer ${secretKey}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(10000),
     });
 
     const data = await response.json();

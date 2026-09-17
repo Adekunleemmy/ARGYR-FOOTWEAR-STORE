@@ -1,29 +1,33 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { ShippingMethodUpdateSchema } from '../schemas/zodSchemas';
-
-const prisma = new PrismaClient();
+import { withCache, invalidateCache } from '../utils/cache';
 
 /**
- * Public: Fetch available active shipping methods
+ * Public: Fetch available active shipping methods (Cached for 120s)
  */
 export async function getShippingMethods(req: Request, res: Response, next: NextFunction) {
   try {
-    const methods = await prisma.shippingMethod.findMany({
-      where: { active: true },
-      orderBy: { sortOrder: 'asc' }
-    });
+    const shippingMethods = await withCache('shipping:methods:active', 120, async () => {
+      const methods = await prisma.shippingMethod.findMany({
+        where: { active: true },
+        orderBy: { sortOrder: 'asc' }
+      });
 
-    res.status(200).json({
-      success: true,
-      shippingMethods: methods.map(m => ({
+      return methods.map(m => ({
         id: m.id,
         name: m.name,
         code: m.code,
         description: m.description,
         price: Number(m.price),
         currency: m.currency
-      }))
+      }));
+    });
+
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+    res.status(200).json({
+      success: true,
+      shippingMethods
     });
   } catch (err) {
     next(err);
@@ -68,6 +72,9 @@ export async function adminUpdateShippingMethod(req: Request, res: Response, nex
       }
     });
 
+    // Invalidate public shipping cache
+    invalidateCache('shipping:');
+
     res.status(200).json({
       success: true,
       message: `Shipping region "${updated.name}" updated successfully.`,
@@ -77,3 +84,4 @@ export async function adminUpdateShippingMethod(req: Request, res: Response, nex
     next(err);
   }
 }
+

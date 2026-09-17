@@ -3,10 +3,9 @@ import cors from "cors";
 import { config } from "./config";
 import router from "./routes";
 import { errorHandler } from "./middleware/errorHandler";
-import { PrismaClient } from "@prisma/client";
+import prisma from "./lib/prisma";
 
 const app = express();
-const prisma = new PrismaClient();
 
 // Parse allowed origins from FRONTEND_URL (supports comma-separated values)
 const allowedOrigins = (config.FRONTEND_URL || "")
@@ -55,6 +54,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Set API routes prefix
 app.use("/api", router);

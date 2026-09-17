@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, OrderStatus, PaymentStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { config } from '../config';
 import { AuthenticatedCustomerRequest } from '../middleware/customerAuth';
 import { CheckoutInitializeSchema } from '../schemas/zodSchemas';
@@ -14,8 +15,7 @@ import {
   sendAdminOrderNotificationEmail
 } from '../services/emailService';
 import { formatOrderWhatsAppMessage } from '../utils/whatsappHelper';
-
-const prisma = new PrismaClient();
+import { invalidateCache } from '../utils/cache';
 
 /**
  * 1. Initialize Authenticated Checkout & Flutterwave Payment Link
@@ -201,7 +201,7 @@ export async function initializeCheckout(req: AuthenticatedCustomerRequest, res:
 export async function verifyPayment(req: Request, res: Response, next: NextFunction) {
   try {
     const { reference } = req.params;
-    const transactionId = req.query.transaction_id as string;
+    const transactionId = (req.query.transaction_id || req.query.transactionId) as string;
 
     if (!reference) {
       return res.status(400).json({ success: false, message: "Transaction reference is required." });
@@ -352,6 +352,10 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
       timeout: 30000
     });
 
+    // Invalidate product catalog cache so updated inventory is live
+    invalidateCache('products:');
+    invalidateCache('admin:dashboard:');
+
     // 5. Trigger transactional emails asynchronously (safe error handling)
     try {
       // Send confirmation to customer
@@ -491,6 +495,9 @@ export async function handleWebhook(req: Request, res: Response, next: NextFunct
 
           // Trigger emails
           sendOrderConfirmationEmail(confirmedOrder, confirmedOrder.customer).catch(console.error);
+
+          invalidateCache('products:');
+          invalidateCache('admin:dashboard:');
         }, {
           maxWait: 10000,
           timeout: 30000

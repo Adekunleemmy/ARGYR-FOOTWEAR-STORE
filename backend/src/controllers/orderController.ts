@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, OrderStatus } from '@prisma/client';
+import { OrderStatus } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { OrderCreateSchema, OrderStatusUpdateSchema } from '../schemas/zodSchemas';
 import { calculateOrderPricing } from '../services/pricingService';
 import { formatOrderWhatsAppMessage, generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { sendOrderStatusUpdateEmail } from '../services/emailService';
 import { config } from '../config';
-
-const prisma = new PrismaClient();
+import { invalidateCache } from '../utils/cache';
 
 /**
  * Public: Create an order enquiry (Legacy WhatsApp workflow preserved for backward compatibility)
@@ -279,6 +279,8 @@ export async function adminUpdateOrderStatus(req: any, res: Response, next: Next
         console.error("Failed to send status update email:", err);
       });
     }
+
+    invalidateCache('admin:dashboard:');
 
     res.status(200).json({
       success: true,

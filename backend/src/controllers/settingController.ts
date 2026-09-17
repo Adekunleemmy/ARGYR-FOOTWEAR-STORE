@@ -1,44 +1,47 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { config } from '../config';
 import { AdminNotificationEmailSchema } from '../schemas/zodSchemas';
-
-const prisma = new PrismaClient();
+import { withCache, invalidateCache } from '../utils/cache';
 
 /**
- * Public: Fetch public settings
+ * Public: Fetch public settings (Cached for 120s)
  */
 export async function getPublicSettings(req: Request, res: Response, next: NextFunction) {
   try {
-    const keys = [
-      "WHATSAPP_BUSINESS_NUMBER",
-      "STORE_EMAIL",
-      "STORE_NAME",
-      "DEFAULT_CURRENCY",
-      "DEFAULT_COUNTRY",
-      "ESTIMATED_DELIVERY_TIMEFRAME",
-      "SUPPORT_EMAIL"
-    ];
+    const settings = await withCache('settings:public', 120, async () => {
+      const keys = [
+        "WHATSAPP_BUSINESS_NUMBER",
+        "STORE_EMAIL",
+        "STORE_NAME",
+        "DEFAULT_CURRENCY",
+        "DEFAULT_COUNTRY",
+        "ESTIMATED_DELIVERY_TIMEFRAME",
+        "SUPPORT_EMAIL"
+      ];
 
-    const dbSettings = await prisma.setting.findMany({
-      where: { key: { in: keys } }
+      const dbSettings = await prisma.setting.findMany({
+        where: { key: { in: keys } }
+      });
+
+      const result: Record<string, string> = {
+        WHATSAPP_BUSINESS_NUMBER: config.DEFAULT_WHATSAPP_NUMBER,
+        STORE_EMAIL: "orders@argyrworldwide.com",
+        STORE_NAME: "ARGYR Footwear",
+        DEFAULT_CURRENCY: "NGN",
+        DEFAULT_COUNTRY: "Nigeria",
+        ESTIMATED_DELIVERY_TIMEFRAME: "7–14 days",
+        SUPPORT_EMAIL: "support@argyrworldwide.com"
+      };
+
+      dbSettings.forEach(s => {
+        result[s.key] = s.value;
+      });
+
+      return result;
     });
 
-    // Default settings
-    const settings: Record<string, string> = {
-      WHATSAPP_BUSINESS_NUMBER: config.DEFAULT_WHATSAPP_NUMBER,
-      STORE_EMAIL: "orders@argyrworldwide.com",
-      STORE_NAME: "ARGYR Footwear",
-      DEFAULT_CURRENCY: "NGN",
-      DEFAULT_COUNTRY: "Nigeria",
-      ESTIMATED_DELIVERY_TIMEFRAME: "7–14 days",
-      SUPPORT_EMAIL: "support@argyrworldwide.com"
-    };
-
-    dbSettings.forEach(s => {
-      settings[s.key] = s.value;
-    });
-
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
     res.status(200).json({ success: true, settings });
   } catch (err) {
     next(err);
@@ -50,35 +53,41 @@ export async function getPublicSettings(req: Request, res: Response, next: NextF
  */
 export async function adminGetSettings(req: Request, res: Response, next: NextFunction) {
   try {
-    const [dbSettings, notificationEmails] = await Promise.all([
-      prisma.setting.findMany(),
-      prisma.adminNotificationEmail.findMany({
-        orderBy: { createdAt: 'asc' }
-      })
-    ]);
+    const data = await withCache('settings:admin', 30, async () => {
+      const [dbSettings, notificationEmails] = await Promise.all([
+        prisma.setting.findMany(),
+        prisma.adminNotificationEmail.findMany({
+          orderBy: { createdAt: 'asc' }
+        })
+      ]);
 
-    const settings: Record<string, string> = {
-      WHATSAPP_BUSINESS_NUMBER: config.DEFAULT_WHATSAPP_NUMBER,
-      STORE_EMAIL: "orders@argyrworldwide.com",
-      STORE_NAME: "ARGYR Footwear",
-      DEFAULT_CURRENCY: "NGN",
-      DEFAULT_COUNTRY: "Nigeria",
-      ESTIMATED_DELIVERY_TIMEFRAME: "7–14 days",
-      SUPPORT_EMAIL: "support@argyrworldwide.com"
-    };
+      const settings: Record<string, string> = {
+        WHATSAPP_BUSINESS_NUMBER: config.DEFAULT_WHATSAPP_NUMBER,
+        STORE_EMAIL: "orders@argyrworldwide.com",
+        STORE_NAME: "ARGYR Footwear",
+        DEFAULT_CURRENCY: "NGN",
+        DEFAULT_COUNTRY: "Nigeria",
+        ESTIMATED_DELIVERY_TIMEFRAME: "7–14 days",
+        SUPPORT_EMAIL: "support@argyrworldwide.com"
+      };
 
-    dbSettings.forEach(s => {
-      settings[s.key] = s.value;
+      dbSettings.forEach(s => {
+        settings[s.key] = s.value;
+      });
+
+      return {
+        settings,
+        notificationEmails,
+        systemStatus: {
+          isFlutterwaveConfigured: config.FLUTTERWAVE.isConfigured,
+          isEmailConfigured: config.EMAIL.isConfigured
+        }
+      };
     });
 
     res.status(200).json({
       success: true,
-      settings,
-      notificationEmails,
-      systemStatus: {
-        isFlutterwaveConfigured: config.FLUTTERWAVE.isConfigured,
-        isEmailConfigured: config.EMAIL.isConfigured
-      }
+      ...data
     });
   } catch (err) {
     next(err);
@@ -101,6 +110,9 @@ export async function adminUpdateSettings(req: Request, res: Response, next: Nex
     });
 
     await prisma.$transaction(upsertQueries);
+
+    // Invalidate settings cache
+    invalidateCache('settings:');
 
     res.status(200).json({
       success: true,

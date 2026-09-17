@@ -1,11 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { AdminLoginSchema } from '../schemas/zodSchemas';
-
-const prisma = new PrismaClient();
 
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {

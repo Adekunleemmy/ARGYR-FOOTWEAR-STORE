@@ -1,9 +1,7 @@
 import { Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { AuthenticatedCustomerRequest } from '../middleware/customerAuth';
 import { CustomerProfileUpdateSchema, CustomerAddressSchema } from '../schemas/zodSchemas';
-
-const prisma = new PrismaClient();
 
 /**
  * 1. Get Customer Profile & Saved Addresses

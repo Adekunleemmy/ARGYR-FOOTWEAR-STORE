@@ -8,11 +8,19 @@ import { useToast } from '../components/Toast';
 
 interface ProductModalProps {
   slug: string | null;
+  initialProduct?: any | null;
+  allProducts?: any[];
   onClose: () => void;
   onNavigate?: (slug: string) => void; // for clicking related products inside modal
 }
 
-export const ProductModal: React.FC<ProductModalProps> = ({ slug, onClose, onNavigate }) => {
+export const ProductModal: React.FC<ProductModalProps> = ({
+  slug,
+  initialProduct,
+  allProducts,
+  onClose,
+  onNavigate
+}) => {
   const [product, setProduct] = useState<any>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,44 +31,74 @@ export const ProductModal: React.FC<ProductModalProps> = ({ slug, onClose, onNav
   const { addToCart } = useCart();
   const { toast } = useToast();
 
-  // Fetch product whenever slug changes
+  // Fetch or populate product whenever slug changes
   useEffect(() => {
     if (!slug) {
       setProduct(null);
+      setRelatedProducts([]);
+      setLoading(false);
       return;
     }
 
-    const fetchProduct = async () => {
-      setLoading(true);
-      setProduct(null);
-      setActiveImageIndex(0);
-      setSelectedSize('');
-      setQuantity(1);
+    setActiveImageIndex(0);
+    setSelectedSize('');
+    setQuantity(1);
 
+    // 1. Instant hydration from initialProduct or allProducts in memory (0ms delay)
+    let immediateProduct = initialProduct?.slug === slug ? initialProduct : null;
+    if (!immediateProduct && allProducts && allProducts.length > 0) {
+      immediateProduct = allProducts.find((p: any) => p.slug === slug) || null;
+    }
+
+    if (immediateProduct) {
+      setProduct(immediateProduct);
+      setLoading(false);
+
+      if (allProducts && allProducts.length > 0 && immediateProduct.categoryId) {
+        const related = allProducts
+          .filter((p: any) => p.categoryId === immediateProduct.categoryId && p.id !== immediateProduct.id)
+          .slice(0, 4);
+        if (related.length > 0) {
+          setRelatedProducts(related);
+        }
+      }
+    } else {
+      setProduct(null);
+      setLoading(true);
+    }
+
+    // 2. Background fresh sync (or foreground if product wasn't already in memory)
+    const fetchProduct = async () => {
       try {
         const res = await api.getProductBySlug(slug);
         if (res.success) {
           setProduct(res.product);
 
-          // Fetch up to 3 related products (same category, excluding this one)
-          const relRes = await api.getProducts({ category: res.product.category.slug });
-          if (relRes.success) {
-            setRelatedProducts(
-              relRes.products.filter((p: any) => p.id !== res.product.id).slice(0, 4)
-            );
+          if (res.relatedProducts && res.relatedProducts.length > 0) {
+            setRelatedProducts(res.relatedProducts);
+          } else if (res.product?.category?.slug) {
+            // Fallback fetch if not bundled
+            const relRes = await api.getProducts({ category: res.product.category.slug });
+            if (relRes.success) {
+              setRelatedProducts(
+                relRes.products.filter((p: any) => p.id !== res.product.id).slice(0, 4)
+              );
+            }
           }
         }
       } catch (err) {
         console.error('ProductModal fetch error:', err);
-        toast('Product not found or unavailable.', 'error');
-        onClose();
+        if (!immediateProduct) {
+          toast('Product not found or unavailable.', 'error');
+          onClose();
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchProduct();
-  }, [slug]);
+  }, [slug, initialProduct, allProducts]);
 
   // Close on Escape key
   useEffect(() => {
@@ -153,7 +191,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ slug, onClose, onNav
               {/* Top bar */}
               <div className="flex items-center justify-between px-6 py-4 border-b-[0.5px] border-neutral-200 dark:border-neutral-800 shrink-0">
                 <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-neutral-400">
-                  {loading ? 'Loading...' : product ? `${product.category?.name} / ${product.gender}` : ''}
+                  {product ? `${product.category?.name || ''} ${product.gender ? '/ ' + product.gender : ''}` : 'Loading...'}
                 </span>
                 <div className="flex items-center gap-3">
                   {product && (
@@ -178,13 +216,16 @@ export const ProductModal: React.FC<ProductModalProps> = ({ slug, onClose, onNav
 
               {/* Scrollable body */}
               <div className="flex-1 overflow-y-auto">
-                {loading ? (
-                  <div className="flex items-center justify-center h-64">
-                    <motion.div
-                      className="w-8 h-8 border-2 border-neutral-300 border-t-neutral-900 dark:border-neutral-700 dark:border-t-white rounded-full"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                    />
+                {loading && !product ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 animate-pulse">
+                    <div className="aspect-square bg-neutral-100 dark:bg-neutral-900 border-thin" />
+                    <div className="flex flex-col gap-5 justify-center py-4">
+                      <div className="h-3 bg-neutral-200 dark:bg-neutral-800 w-24" />
+                      <div className="h-7 bg-neutral-200 dark:bg-neutral-800 w-3/4" />
+                      <div className="h-5 bg-neutral-200 dark:bg-neutral-800 w-32" />
+                      <div className="h-16 bg-neutral-200 dark:bg-neutral-800 w-full" />
+                      <div className="h-10 bg-neutral-200 dark:bg-neutral-800 w-full" />
+                    </div>
                   </div>
                 ) : product ? (
                   <div className="flex flex-col">

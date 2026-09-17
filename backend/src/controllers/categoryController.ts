@@ -1,18 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { CategorySchema } from '../schemas/zodSchemas';
-
-const prisma = new PrismaClient();
+import { withCache, invalidateCache } from '../utils/cache';
 
 /**
- * Public: Retrieve active categories ordered by sortOrder
+ * Public: Retrieve active categories ordered by sortOrder (Cached for 120s)
  */
 export async function getActiveCategories(req: Request, res: Response, next: NextFunction) {
   try {
-    const categories = await prisma.category.findMany({
-      where: { active: true },
-      orderBy: { sortOrder: 'asc' }
+    const categories = await withCache('categories:active', 120, async () => {
+      return prisma.category.findMany({
+        where: { active: true },
+        orderBy: { sortOrder: 'asc' }
+      });
     });
+
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
     res.status(200).json({ success: true, categories });
   } catch (err) {
     next(err);
@@ -47,6 +50,8 @@ export async function createCategory(req: Request, res: Response, next: NextFunc
     }
 
     const category = await prisma.category.create({ data });
+    invalidateCache('categories:');
+
     res.status(201).json({ success: true, message: "Category created successfully", category });
   } catch (err) {
     next(err);
@@ -79,6 +84,9 @@ export async function updateCategory(req: Request, res: Response, next: NextFunc
       data
     });
 
+    invalidateCache('categories:');
+    invalidateCache('products:');
+
     res.status(200).json({ success: true, message: "Category updated successfully", category });
   } catch (err) {
     next(err);
@@ -102,8 +110,12 @@ export async function deleteCategory(req: Request, res: Response, next: NextFunc
     }
 
     await prisma.category.delete({ where: { id } });
+    invalidateCache('categories:');
+    invalidateCache('products:');
+
     res.status(200).json({ success: true, message: "Category deleted successfully" });
   } catch (err) {
     next(err);
   }
 }
+

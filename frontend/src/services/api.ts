@@ -1,64 +1,135 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+
+const clientCache = new Map<string, CacheEntry>();
+const inflightRequests = new Map<string, Promise<any>>();
+
+export function clearClientCache(prefix?: string) {
+  if (!prefix) {
+    clientCache.clear();
+    return;
+  }
+  for (const key of clientCache.keys()) {
+    if (key.includes(prefix)) clientCache.delete(key);
+  }
+}
+
 /**
  * Authorization wrapper around fetch.
  * Sets credentials to 'include' so that HTTP-only secure session cookies are transmitted.
  * Selects the appropriate Authorization token (admin vs customer).
+ * Features in-flight deduplication and short-lived caching for read-heavy public endpoints.
  */
 async function request(path: string, options: RequestInit = {}) {
+  const isGet = !options.method || options.method.toUpperCase() === 'GET';
   const url = `${BASE_URL}${path}`;
 
-  options.credentials = 'include';
+  // If mutation, invalidate related client cache
+  if (!isGet) {
+    clearClientCache();
+  } else {
+    // Check client cache for static public endpoints (valid for 30s)
+    const isCacheable =
+      path.startsWith('/categories') ||
+      path.startsWith('/shipping/methods') ||
+      path.startsWith('/settings/public') ||
+      path.startsWith('/products');
 
-  // Determine token: customer vs admin
-  const isAdminPath = path.startsWith('/admin');
-  const token = isAdminPath
-    ? localStorage.getItem('admin_token')
-    : localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
-
-  const headers: Record<string, string> = {
-    ...(options.headers as Record<string, string> || {})
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  if (options.body && !(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  options.headers = headers;
-
-  const response = await fetch(url, options);
-
-  // Catch 401 Session expirations
-  if (response.status === 401) {
-    if (isAdminPath && path !== '/admin/auth/login' && path !== '/admin/auth/me') {
-      localStorage.removeItem('admin_token');
-      window.dispatchEvent(new Event('argyr_unauthorized'));
-    } else if (!isAdminPath && path !== '/auth/login' && path !== '/auth/register' && path !== '/auth/me') {
-      localStorage.removeItem('customer_token');
-      window.dispatchEvent(new Event('argyr_customer_unauthorized'));
+    if (isCacheable) {
+      const cached = clientCache.get(url);
+      if (cached && Date.now() - cached.timestamp < 30000) {
+        return cached.data;
+      }
+      // Deduplicate in-flight concurrent requests for the exact same URL
+      if (inflightRequests.has(url)) {
+        return inflightRequests.get(url);
+      }
     }
   }
 
-  const data = await response.json();
+  const fetchPromise = (async () => {
+    options.credentials = 'include';
 
-  if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong. Please try again.');
+    // Determine token: customer vs admin
+    const isAdminPath = path.startsWith('/admin');
+    const token = isAdminPath
+      ? localStorage.getItem('admin_token')
+      : localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
+
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string> || {})
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (options.body && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    options.headers = headers;
+
+    const response = await fetch(url, options);
+
+    // Catch 401 Session expirations
+    if (response.status === 401) {
+      if (isAdminPath && path !== '/admin/auth/login' && path !== '/admin/auth/me') {
+        localStorage.removeItem('admin_token');
+        window.dispatchEvent(new Event('argyr_unauthorized'));
+      } else if (!isAdminPath && path !== '/auth/login' && path !== '/auth/register' && path !== '/auth/me') {
+        localStorage.removeItem('customer_token');
+        window.dispatchEvent(new Event('argyr_customer_unauthorized'));
+      }
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Something went wrong. Please try again.');
+    }
+
+    if (isGet) {
+      clientCache.set(url, { data, timestamp: Date.now() });
+    }
+
+    return data;
+  })();
+
+  if (isGet) {
+    inflightRequests.set(url, fetchPromise);
+    fetchPromise.finally(() => inflightRequests.delete(url));
   }
 
-  return data;
+  return fetchPromise;
 }
 
 export const api = {
   // ==========================================
   // 1. PUBLIC STOREFRONT API
   // ==========================================
-  getProducts: (params?: Record<string, string>) => {
+  getProducts: async (params?: Record<string, string>) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return request(`/products${query}`);
+    const data = await request(`/products${query}`);
+    if (data && data.success && Array.isArray(data.products)) {
+      data.products.forEach((p: any) => {
+        if (p && p.slug) {
+          const detailUrl = `${BASE_URL}/products/${p.slug}`;
+          const related = data.products
+            .filter((r: any) => r.categoryId === p.categoryId && r.id !== p.id)
+            .slice(0, 4);
+          clientCache.set(detailUrl, {
+            data: { success: true, product: p, relatedProducts: related },
+            timestamp: Date.now()
+          });
+        }
+      });
+    }
+    return data;
   },
 
   getProductBySlug: (slug: string) => request(`/products/${slug}`),

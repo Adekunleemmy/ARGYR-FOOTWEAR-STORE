@@ -1,11 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, CustomRequestStatus } from '@prisma/client';
+import { CustomRequestStatus } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { CustomRequestCreateSchema, CustomRequestStatusUpdateSchema } from '../schemas/zodSchemas';
 import { formatCustomRequestWhatsAppMessage, generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { config } from '../config';
 import { uploadToCloudinary } from '../utils/cloudinaryHelper';
-
-const prisma = new PrismaClient();
 
 /**
  * Public: Submit a guest custom shoe request (supports up to 5 reference image uploads)
@@ -20,18 +19,22 @@ export async function createCustomRequest(req: any, res: Response, next: NextFun
     };
     
     const validatedData = CustomRequestCreateSchema.parse(bodyData);
-    // 2. Upload reference images to Cloudinary (if configured) or local folder
+    // 2. Upload reference images to Cloudinary concurrently
     const files = req.files as Express.Multer.File[] || [];
     const uploadedUrls: string[] = [];
 
     if (files.length > 0) {
-      for (const file of files) {
-        try {
-          const cloudinaryResult = await uploadToCloudinary(file.buffer);
-          uploadedUrls.push(cloudinaryResult.url);
-        } catch (e) {
-          console.error("Cloudinary upload failure:", e);
-        }
+      const uploadPromises = files.map(file =>
+        uploadToCloudinary(file.buffer)
+          .then(res => res.url)
+          .catch(e => {
+            console.error("Cloudinary upload failure:", e);
+            return null;
+          })
+      );
+      const results = await Promise.all(uploadPromises);
+      for (const url of results) {
+        if (url) uploadedUrls.push(url);
       }
     }
 
