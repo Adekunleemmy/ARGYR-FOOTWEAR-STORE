@@ -72,17 +72,7 @@ export const Footer: React.FC = () => {
       {/* Copyright Notice */}
       <div className="max-w-7xl mx-auto px-6 py-8 border-t-[0.5px] border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
         <span>&copy; {currentYear} ARGYR Footwear. All rights reserved.</span>
-        <div className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
-          <span>Built with ❤️ by</span>
-          <a
-            href="https://wa.me/2349133912973"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-neutral-900 dark:text-white hover:text-brand-clay dark:hover:text-brand-gold underline underline-offset-4 transition-colors cursor-pointer"
-          >
-            Adeks
-          </a>
-        </div>
+
         <span className="tracking-wide">Crafted for presence.</span>
       </div>
     </footer>
