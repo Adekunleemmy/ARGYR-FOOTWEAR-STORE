@@ -298,7 +298,7 @@ export const Home: React.FC = () => {
                 </p>
                 <Link
                   to="/shop"
-                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand-clay dark:bg-white text-white dark:text-neutral-950 text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-opacity text-center"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-neutral-950 dark:bg-white text-white dark:text-neutral-950 text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-opacity text-center"
                 >
                   Shop in Bulk
                 </Link>
