@@ -1,0 +1,6 @@
+# Allow all search crawlers, including Googlebot and Googlebot-Image
+User-agent: *
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
