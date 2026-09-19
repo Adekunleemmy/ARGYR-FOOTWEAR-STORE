@@ -148,7 +148,7 @@ export const AuthModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-md bg-white dark:bg-neutral-900 border-[0.5px] border-neutral-200 dark:border-neutral-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-md bg-white dark:bg-neutral-900 border-[0.5px] border-neutral-200 dark:border-neutral-800 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
@@ -162,7 +162,7 @@ export const AuthModal: React.FC = () => {
         </button>
 
         {/* Modal Header */}
-        <div className="pt-8 pb-4 px-8 text-center border-b-[0.5px] border-neutral-100 dark:border-neutral-800/60">
+        <div className="pt-8 pb-4 px-5 sm:px-8 text-center border-b-[0.5px] border-neutral-100 dark:border-neutral-800/60">
           <span className="text-xs uppercase tracking-[0.3em] font-editorial text-neutral-400 font-bold">
             ARGYR FOOTWEAR
           </span>
@@ -207,7 +207,7 @@ export const AuthModal: React.FC = () => {
         )}
 
         {/* BODY FORMS */}
-        <div className="p-8">
+        <div className="p-5 sm:p-8">
           {/* 1. LOGIN FORM */}
           {authModalMode === 'login' && (
             <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">

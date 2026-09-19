@@ -56,7 +56,7 @@ export const Home: React.FC = () => {
       <PageTransition>
         <div className="w-full flex flex-col overflow-x-hidden">
           {/* 1. HERO SECTION */}
-          <section className="relative h-[90vh] bg-neutral-900 overflow-hidden flex items-center">
+          <section className="relative min-h-[85vh] sm:h-[90vh] bg-neutral-900 overflow-hidden flex items-center">
             {/* Visual Background image (Editorial shoe photo) */}
             <div className="absolute inset-0 z-0 overflow-hidden">
               <motion.img
@@ -71,42 +71,42 @@ export const Home: React.FC = () => {
             </div>
 
             <motion.div
-              className="max-w-7xl mx-auto px-6 w-full relative z-10 text-white flex flex-col gap-6 md:max-w-3xl"
+              className="max-w-7xl mx-auto px-4 sm:px-6 w-full relative z-10 text-white flex flex-col gap-5 sm:gap-6 md:max-w-3xl"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
               <motion.span
-                className="text-xs uppercase tracking-[0.3em] font-semibold text-brand-gold"
+                className="text-[11px] sm:text-xs uppercase tracking-[0.25em] sm:tracking-[0.3em] font-semibold text-brand-gold"
                 variants={itemVariants}
               >
                 Nigerian Luxury Footwear
               </motion.span>
               <motion.h1
-                className="text-5xl md:text-7xl font-bold leading-none tracking-tight font-serif"
+                className="text-4xl sm:text-5xl md:text-7xl font-bold leading-tight md:leading-none tracking-tight font-serif"
                 variants={itemVariants}
               >
                 Crafted for your presence.
               </motion.h1>
               <motion.p
-                className="text-base md:text-lg text-neutral-300 max-w-xl font-light leading-relaxed"
+                className="text-sm sm:text-base md:text-lg text-neutral-300 max-w-xl font-light leading-relaxed"
                 variants={itemVariants}
               >
                 Distinctive ready-to-wear, handmade, and bespoke footwear. Engineered around premium materials and refined proportions to deliver absolute confidence.
               </motion.p>
               <motion.div
-                className="flex flex-col sm:flex-row gap-4 mt-4"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-2 sm:mt-4 w-full sm:w-auto"
                 variants={itemVariants}
               >
                 <Link
                   to="/shop"
-                  className="px-8 py-4 bg-white text-neutral-950 text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors text-center shadow-lg hover:shadow-xl duration-300"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-neutral-950 text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors text-center shadow-lg hover:shadow-xl duration-300"
                 >
                   Shop Collection
                 </Link>
                 <Link
                   to="/custom"
-                  className="px-8 py-4 border-[0.5px] border-white text-white text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-neutral-950 transition-all text-center"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 border-[0.5px] border-white text-white text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-neutral-950 transition-all text-center"
                 >
                   Bespoke Design Studio
                 </Link>
@@ -124,7 +124,7 @@ export const Home: React.FC = () => {
               variants={containerVariants}
             >
               <motion.div
-                className="p-8 flex items-start gap-4 border-thin-b md:border-b-0 md:border-thin-r hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors duration-300 cursor-default"
+                className="p-6 sm:p-8 flex items-start gap-4 border-thin-b md:border-b-0 md:border-thin-r hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors duration-300 cursor-default"
                 variants={itemVariants}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
               >
@@ -135,7 +135,7 @@ export const Home: React.FC = () => {
                 </div>
               </motion.div>
               <motion.div
-                className="p-8 flex items-start gap-4 border-thin-b md:border-b-0 md:border-thin-r hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors duration-300 cursor-default"
+                className="p-6 sm:p-8 flex items-start gap-4 border-thin-b md:border-b-0 md:border-thin-r hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors duration-300 cursor-default"
                 variants={itemVariants}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
               >
@@ -146,7 +146,7 @@ export const Home: React.FC = () => {
                 </div>
               </motion.div>
               <motion.div
-                className="p-8 flex items-start gap-4 hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors duration-300 cursor-default"
+                className="p-6 sm:p-8 flex items-start gap-4 hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors duration-300 cursor-default"
                 variants={itemVariants}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
               >
@@ -160,9 +160,9 @@ export const Home: React.FC = () => {
           </section>
 
           {/* 3. FEATURED PRODUCTS COLLECTION */}
-          <section className="max-w-7xl mx-auto px-6 py-24 w-full">
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 w-full">
             <motion.div
-              className="flex flex-col md:flex-row items-baseline justify-between gap-4 mb-16"
+              className="flex flex-col md:flex-row items-baseline justify-between gap-4 mb-10 sm:mb-16"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
@@ -170,7 +170,7 @@ export const Home: React.FC = () => {
             >
               <div className="flex flex-col gap-2">
                 <span className="text-xs uppercase tracking-widest text-brand-clay dark:text-brand-gold font-bold">Curated Edit</span>
-                <h2 className="text-3xl md:text-5xl font-bold">Atelier Highlights</h2>
+                <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold">Atelier Highlights</h2>
               </div>
               <Link
                 to="/shop"
@@ -244,8 +244,8 @@ export const Home: React.FC = () => {
           </section>
 
           {/* 4. CUSTOM STUDIO TEASER SECTION */}
-          <section className="bg-neutral-800 dark:bg-neutral-900 text-white py-24 border-thin-y overflow-hidden">
-            <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <section className="bg-neutral-800 dark:bg-neutral-900 text-white py-16 sm:py-24 border-thin-y overflow-hidden">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
               <motion.div
                 className="relative aspect-[4/3] bg-neutral-700 border-[0.5px] border-neutral-600 overflow-hidden"
                 initial={{ opacity: 0, x: -30 }}
@@ -260,20 +260,20 @@ export const Home: React.FC = () => {
                 />
               </motion.div>
               <motion.div
-                className="flex flex-col gap-6 items-start"
+                className="flex flex-col gap-5 sm:gap-6 items-start"
                 initial={{ opacity: 0, x: 30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               >
                 <span className="text-xs uppercase tracking-[0.25em] text-brand-gold font-bold">Atelier Consultation</span>
-                <h2 className="text-3xl md:text-5xl font-bold leading-tight font-serif">Have something specific in mind?</h2>
+                <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold leading-tight font-serif">Have something specific in mind?</h2>
                 <p className="text-neutral-300 text-sm md:text-base leading-relaxed font-light">
                   Collaborate directly with our master craftsmen. Bring your dream shoe concept to life. Simply configure your preferences for silhouette style, size, color, leather material, and add reference photos. We will consult with you directly on WhatsApp to finalize the build spec and deliver your unique custom order.
                 </p>
                 <Link
                   to="/custom"
-                  className="px-8 py-4 bg-white text-neutral-950 text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors duration-300 text-center"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-neutral-950 text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors duration-300 text-center"
                 >
                   Bring Your Idea to Life
                 </Link>
@@ -282,23 +282,23 @@ export const Home: React.FC = () => {
           </section>
 
           {/* 5. BULK BUYING TEASER SECTION */}
-          <section className="bg-white dark:bg-neutral-950 py-24 border-thin-b overflow-hidden">
-            <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <section className="bg-white dark:bg-neutral-950 py-16 sm:py-24 border-thin-b overflow-hidden">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
               <motion.div
-                className="flex flex-col gap-6 items-start order-2 md:order-1"
+                className="flex flex-col gap-5 sm:gap-6 items-start order-2 md:order-1"
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               >
                 <span className="text-xs uppercase tracking-[0.25em] text-brand-clay dark:text-brand-gold font-bold">Wholesale Channel</span>
-                <h2 className="text-3xl md:text-5xl font-bold leading-tight font-serif">Custom Bulk Sizing</h2>
+                <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold leading-tight font-serif">Custom Bulk Sizing</h2>
                 <p className="text-neutral-600 dark:text-neutral-400 text-sm md:text-base leading-relaxed font-light">
                   We cater to wholesale buyers, wedding events, and corporate client programs. Configurable bulk discount prices are available for orders starting from 5 to 10 pairs. Review pricing models across the shop catalog and begin a bulk conversation directly via WhatsApp.
                 </p>
                 <Link
                   to="/shop"
-                  className="px-8 py-4 bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-opacity text-center"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand-clay dark:bg-white text-white dark:text-neutral-950 text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-opacity text-center"
                 >
                   Shop in Bulk
                 </Link>

@@ -174,7 +174,7 @@ export const CustomRequestWizard: React.FC = () => {
   if (successData) {
     return (
       <PageTransition>
-        <div className="max-w-md mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
+        <div className="max-w-md mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center flex flex-col items-center gap-6">
         <div className="w-16 h-16 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 flex items-center justify-center rounded-none shadow-md">
           <Check size={28} />
         </div>
@@ -201,7 +201,7 @@ export const CustomRequestWizard: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="max-w-2xl mx-auto px-6 py-16 w-full flex flex-col gap-10">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-16 w-full flex flex-col gap-8 sm:gap-10">
       
       {/* Header Statement */}
       <div className="flex flex-col gap-2 border-thin-b pb-6">

@@ -55,12 +55,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearchToggle }) => {
 
   return (
     <header className="sticky top-0 z-40 bg-neutral-50/80 backdrop-blur-md dark:bg-neutral-950/80 border-b-[0.5px] border-neutral-200 dark:border-neutral-800">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
         {/* Left Side: Mobile Menu Trigger & Brand logo */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white"
+            className="md:hidden p-1.5 sm:p-2 text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -68,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearchToggle }) => {
           
           <Link 
             to="/" 
-            className="text-2xl font-editorial tracking-[0.25em] font-bold text-neutral-900 dark:text-white hover:opacity-80 transition-opacity"
+            className="text-xl sm:text-2xl font-editorial tracking-[0.2em] sm:tracking-[0.25em] font-bold text-neutral-900 dark:text-white hover:opacity-80 transition-opacity"
           >
             ARGYR
           </Link>
@@ -92,12 +92,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearchToggle }) => {
         </nav>
 
         {/* Right Side: Search, Theme, Customer Account, Cart */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
           {/* Search Trigger */}
           <button
             onClick={onSearchToggle}
-            className="p-2.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors"
+            className="p-1.5 sm:p-2.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors"
             title="Search products"
+            aria-label="Search products"
           >
             <Search size={18} />
           </button>
@@ -105,7 +106,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearchToggle }) => {
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors"
+            className="p-1.5 sm:p-2.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
@@ -115,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearchToggle }) => {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={handleAccountClick}
-              className={`p-2.5 transition-colors flex items-center gap-1.5 ${
+              className={`p-1.5 sm:p-2.5 transition-colors flex items-center gap-1.5 ${
                 isAuthenticated
                   ? 'text-neutral-950 dark:text-white font-medium'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white'
@@ -184,12 +185,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearchToggle }) => {
           {/* Cart Bag */}
           <Link
             to="/cart"
-            className="p-2.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors relative"
+            className="p-1.5 sm:p-2.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors relative"
             aria-label="Shopping Cart"
           >
             <ShoppingBag size={18} />
             {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-[10px] w-4.5 h-4.5 flex items-center justify-center rounded-none font-bold uppercase tracking-tighter">
+              <span className="absolute top-0.5 right-0.5 sm:-top-0.5 sm:-right-0.5 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-[9px] sm:text-[10px] w-4 h-4 sm:w-4.5 sm:h-4.5 flex items-center justify-center rounded-none font-bold uppercase tracking-tighter">
                 {cartCount}
               </span>
             )}

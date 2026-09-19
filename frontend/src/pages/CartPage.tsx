@@ -215,7 +215,7 @@ export const CartPage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="flex flex-col gap-2 mb-8">
           <span className="text-[10px] uppercase tracking-[0.3em] font-editorial text-neutral-400 font-bold">
             CHECKOUT
@@ -236,7 +236,7 @@ export const CartPage: React.FC = () => {
 
               <div className="flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800">
                 {cart.map(item => (
-                  <div key={`${item.productId}-${item.selectedSize}`} className="py-4 flex gap-4 items-center justify-between">
+                  <div key={`${item.productId}-${item.selectedSize}`} className="py-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 border-[0.5px] border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950 overflow-hidden shrink-0">
                         {item.imageUrl ? (

@@ -6,7 +6,7 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="bg-neutral-100 dark:bg-neutral-900 border-t-[0.5px] border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400">
-      <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-12">
         {/* Brand Section */}
         <div className="md:col-span-2 flex flex-col gap-4">
           <Link to="/" className="text-xl font-editorial tracking-[0.25em] font-bold text-neutral-900 dark:text-white">
@@ -70,7 +70,7 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* Copyright Notice */}
-      <div className="max-w-7xl mx-auto px-6 py-8 border-t-[0.5px] border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 border-t-[0.5px] border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 text-xs text-center md:text-left">
         <span>&copy; {currentYear} ARGYR Footwear. All rights reserved.</span>
 
         <span className="tracking-wide">Crafted for presence.</span>

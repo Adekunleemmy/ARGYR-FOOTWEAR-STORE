@@ -189,7 +189,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             >
               {/* Top bar */}
-              <div className="flex items-center justify-between px-6 py-4 border-b-[0.5px] border-neutral-200 dark:border-neutral-800 shrink-0">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b-[0.5px] border-neutral-200 dark:border-neutral-800 shrink-0">
                 <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-neutral-400">
                   {product ? `${product.category?.name || ''} ${product.gender ? '/ ' + product.gender : ''}` : 'Loading...'}
                 </span>
@@ -292,7 +292,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                       </div>
 
                       {/* RIGHT: Info */}
-                      <div className="flex flex-col gap-5 p-6 md:p-8 overflow-y-auto">
+                      <div className="flex flex-col gap-5 p-4 sm:p-6 md:p-8 overflow-y-auto">
                         {/* Title & Price */}
                         <div className="flex flex-col gap-1.5">
                           <h2 className="text-2xl md:text-3xl font-bold leading-tight tracking-wide text-neutral-900 dark:text-white">
@@ -429,7 +429,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
                     {/* Related Products */}
                     {relatedProducts.length > 0 && (
-                      <div className="border-t-[0.5px] border-neutral-200 dark:border-neutral-800 px-6 md:px-8 py-8">
+                      <div className="border-t-[0.5px] border-neutral-200 dark:border-neutral-800 px-4 sm:px-6 md:px-8 py-6 sm:py-8">
                         <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-neutral-900 dark:text-white">
                           You may also like
                         </h3>

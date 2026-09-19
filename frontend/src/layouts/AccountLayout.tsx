@@ -43,7 +43,7 @@ export const AccountLayout: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col gap-8">
         {/* Customer Header Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b-[0.5px] border-neutral-200 dark:border-neutral-800">
           <div>
@@ -68,7 +68,7 @@ export const AccountLayout: React.FC = () => {
               <Link
                 key={tab.path}
                 to={tab.path}
-                className={`flex items-center gap-2 px-6 py-3 text-xs uppercase tracking-widest font-semibold border-b-2 transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-xs uppercase tracking-widest font-semibold border-b-2 transition-all whitespace-nowrap ${
                   active
                     ? 'border-neutral-900 dark:border-white text-neutral-900 dark:text-white'
                     : 'border-transparent text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'

@@ -104,7 +104,7 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
   return (
     <>
       <PageTransition>
-      <div className="max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 w-full flex flex-col gap-8">
       {searchOpen && (
         <div className="w-full flex items-center gap-4 bg-neutral-100 dark:bg-neutral-900 p-4 border-thin animate-in slide-in-from-top duration-200">
           <Search size={18} className="text-neutral-400" />
@@ -349,7 +349,7 @@ export const Shop: React.FC<ShopProps> = ({ searchOpen, onSearchClose }) => {
       {/* MOBILE FILTERS SIDE DRAWER */}
       {mobileFiltersOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end md:hidden animate-in fade-in duration-200">
-          <div className="w-80 bg-white dark:bg-neutral-900 h-full p-6 overflow-y-auto flex flex-col gap-8 animate-in slide-in-from-right duration-250">
+          <div className="w-full max-w-xs sm:w-80 bg-white dark:bg-neutral-900 h-full p-6 overflow-y-auto flex flex-col gap-8 animate-in slide-in-from-right duration-250">
             
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-thin-b pb-4">

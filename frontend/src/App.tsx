@@ -44,7 +44,7 @@ function AppContent() {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 font-sans selection:bg-neutral-800 selection:text-white dark:selection:bg-white dark:selection:text-neutral-900">
+    <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 font-sans selection:bg-neutral-800 selection:text-white dark:selection:bg-white dark:selection:text-neutral-900 overflow-x-hidden w-full">
       {/* Global Auth Modal for Customer Account Access */}
       <AuthModal />
 

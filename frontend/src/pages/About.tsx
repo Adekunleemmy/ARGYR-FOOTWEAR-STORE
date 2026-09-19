@@ -7,7 +7,7 @@ export const About: React.FC = () => {
     <div className="w-full flex flex-col">
       {/* Editorial Header */}
       <section className="bg-white dark:bg-neutral-950 border-thin-b">
-        <div className="max-w-7xl mx-auto px-6 py-24 md:py-32 flex flex-col gap-6 max-w-3xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 md:py-32 flex flex-col gap-6 max-w-3xl">
           <span className="text-xs uppercase tracking-[0.3em] font-bold text-brand-clay dark:text-brand-gold">
             Atelier Ethos
           </span>
@@ -21,8 +21,8 @@ export const About: React.FC = () => {
       </section>
 
       {/* Main Narrative Blocks */}
-      <section className="bg-neutral-50 dark:bg-neutral-900/40 py-24">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+      <section className="bg-neutral-50 dark:bg-neutral-900/40 py-16 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-2 gap-10 sm:gap-16 items-center">
           <div className="relative aspect-[4/5] bg-neutral-200 border-thin overflow-hidden">
             <img 
               src="/images/about-craft.jpg" 
@@ -60,8 +60,8 @@ export const About: React.FC = () => {
       </section>
 
       {/* Quote Banner */}
-      <section className="bg-white dark:bg-neutral-950 py-24 text-center border-thin-y">
-        <div className="max-w-3xl mx-auto px-6 flex flex-col gap-6">
+      <section className="bg-white dark:bg-neutral-950 py-16 sm:py-24 text-center border-thin-y">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 flex flex-col gap-6">
           <span className="text-xs uppercase tracking-[0.25em] text-neutral-400">Atelier Signature</span>
           <p className="text-xl md:text-3xl font-editorial italic text-neutral-850 dark:text-neutral-200 leading-normal">
             "A shoe is not merely an accessory. It is the architectural foundation of your posture, carrying your weight and defining your presence in any room."

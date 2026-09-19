@@ -20,10 +20,24 @@
 
 /* Custom scrollbar and base transitions */
 @layer base {
+  *, ::before, ::after {
+    box-sizing: border-box;
+  }
+
   * {
     @apply border-neutral-200 dark:border-neutral-800 transition-colors duration-200;
   }
   
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-neutral-50 text-neutral-900 font-sans antialiased selection:bg-neutral-800 selection:text-white dark:bg-neutral-950 dark:text-neutral-50 dark:selection:bg-neutral-100 dark:selection:text-neutral-900;
   }
