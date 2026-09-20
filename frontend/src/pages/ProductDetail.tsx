@@ -98,7 +98,7 @@ export const ProductDetail: React.FC = () => {
 
   const handleWhatsAppContact = () => {
     const textMessage = `Hello ARGYR,\n\nI would like to ask about the availability of the following shoe:\n\n${product.name}\nSKU: ${product.sku}\n\nThank you.`;
-    const number = import.meta.env.VITE_WHATSAPP_NUMBER || '234817112850';
+    const number = import.meta.env.VITE_WHATSAPP_NUMBER || '2348171128520';
     const url = `https://wa.me/${number}?text=${encodeURIComponent(textMessage)}`;
     window.open(url, '_blank');
   };

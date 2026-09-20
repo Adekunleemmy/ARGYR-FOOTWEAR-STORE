@@ -85,7 +85,7 @@ The database runs on PostgreSQL managed via Prisma:
    DIRECT_URL="postgresql://...neon.tech/neondb?sslmode=require"
 
    JWT_SECRET="your-super-secret-jwt-key"
-   ARGYR_WHATSAPP_NUMBER="234817112850"
+   ARGYR_WHATSAPP_NUMBER="2348171128520"
 
    CLOUDINARY_CLOUD_NAME="your-cloud-name"
    CLOUDINARY_API_KEY="your-api-key"

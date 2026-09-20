@@ -107,7 +107,7 @@ export const AccountOverview: React.FC = () => {
             Have questions regarding sizing, custom leathers or your delivery schedule?
           </p>
           <a
-            href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '234817112850'}?text=Hello%20ARGYR,%20I%20need%20assistance%20with%20my%20customer%20account.`}
+            href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '2348171128520'}?text=Hello%20ARGYR,%20I%20need%20assistance%20with%20my%20customer%20account.`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs uppercase tracking-wider font-semibold text-neutral-900 dark:text-white mt-4 flex items-center gap-1.5 hover:underline"

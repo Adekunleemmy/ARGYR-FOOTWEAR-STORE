@@ -110,7 +110,7 @@ export const OrderDetailPage: React.FC = () => {
   const currentStageIndex = getStageIndex(order.status);
 
   // WhatsApp contextual help link
-  const whatsappUrl = `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '234817112850'}?text=${encodeURIComponent(
+  const whatsappUrl = `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '2348171128520'}?text=${encodeURIComponent(
     `Hello ARGYR, I would like to ask about my order ${order.orderReference}.`
   )}`;
 
