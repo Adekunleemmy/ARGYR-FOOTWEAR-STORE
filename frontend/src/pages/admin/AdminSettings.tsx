@@ -212,7 +212,7 @@ export const AdminSettings: React.FC = () => {
               type="text"
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
-              placeholder="e.g. 2348171128520"
+              placeholder="e.g. 234817112850"
               className="bg-transparent border-[0.5px] border-neutral-300 dark:border-neutral-700 px-3 py-2 text-xs text-neutral-900 dark:text-white outline-none font-mono"
               required
             />

@@ -20,7 +20,7 @@ async function main() {
   // 1. Seed default system settings
   await prisma.setting.createMany({
     data: [
-      { key: "WHATSAPP_BUSINESS_NUMBER", value: "2348000000000" },
+      { key: "WHATSAPP_BUSINESS_NUMBER", value: "234817112850" },
       { key: "STORE_EMAIL", value: "orders@argyr.com" },
       { key: "STORE_NAME", value: "ARGYR" },
       { key: "DEFAULT_CURRENCY", value: "NGN" },

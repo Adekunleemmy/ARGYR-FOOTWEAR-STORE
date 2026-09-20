@@ -604,7 +604,7 @@ export const CartPage: React.FC = () => {
             {/* Contextual WhatsApp Consultation */}
             <div className="pt-2 text-center">
               <a
-                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '2348171128520'}?text=Hello%20ARGYR,%20I%20have%20questions%20regarding%20my%20bag%20and%20checkout.`}
+                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '234817112850'}?text=Hello%20ARGYR,%20I%20have%20questions%20regarding%20my%20bag%20and%20checkout.`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"

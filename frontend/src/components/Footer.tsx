@@ -57,7 +57,7 @@ export const Footer: React.FC = () => {
             </li>
             <li>
               <a 
-                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '2348171128520'}`} 
+                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '234817112850'}`} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-neutral-900 dark:hover:text-white transition-colors"

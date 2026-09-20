@@ -144,7 +144,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const handleWhatsAppContact = useCallback(() => {
     if (!product) return;
     const msg = `Hello ARGYR,\n\nI would like to ask about the availability of:\n\n${product.name}\nSKU: ${product.sku}\n\nThank you.`;
-    window.open(`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '234817112850'}?text=${encodeURIComponent(msg)}`, '_blank');
   }, [product]);
 
   const prevImage = () => setActiveImageIndex(i => Math.max(0, i - 1));

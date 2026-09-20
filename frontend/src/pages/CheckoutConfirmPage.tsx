@@ -78,7 +78,7 @@ export const CheckoutConfirmPage: React.FC = () => {
 
   // 2. SUCCESSFUL ORDER CONFIRMATION
   if (verifiedOrder) {
-    const whatsappUrl = `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '2348171128520'}?text=${encodeURIComponent(
+    const whatsappUrl = `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '234817112850'}?text=${encodeURIComponent(
       `Hello ARGYR, I just paid for order ${verifiedOrder.orderReference}.`
     )}`;
 
@@ -179,7 +179,7 @@ export const CheckoutConfirmPage: React.FC = () => {
           </Link>
 
           <a
-            href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '2348171128520'}?text=Hello%20ARGYR,%20I%20experienced%20an%20issue%20during%20Flutterwave%20payment.`}
+            href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '234817112850'}?text=Hello%20ARGYR,%20I%20experienced%20an%20issue%20during%20Flutterwave%20payment.`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs uppercase tracking-wider text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors flex items-center justify-center gap-1.5 pt-2"
