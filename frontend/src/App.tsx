@@ -8,6 +8,7 @@ import { ToastProvider } from './components/Toast';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
+import { FloatingCheckoutButton } from './components/FloatingCheckoutButton';
 
 // Public Pages
 import { Home } from './pages/Home';
@@ -94,6 +95,9 @@ function AppContent() {
           </Routes>
         </AnimatePresence>
       </main>
+
+      {/* Floating Checkout Shortcut for active cart */}
+      <FloatingCheckoutButton />
 
       {/* Minimal Editorial Footer */}
       <Footer />
