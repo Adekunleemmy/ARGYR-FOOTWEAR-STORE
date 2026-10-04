@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, ShoppingBag, MessageSquare, Layers, Bookmark, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { X, ShoppingBag, MessageSquare, Layers, Bookmark, ChevronLeft, ChevronRight, ExternalLink, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../components/Toast';
@@ -30,6 +30,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Fetch or populate product whenever slug changes
   useEffect(() => {
@@ -140,6 +141,30 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     });
     toast(`${product.name} (Size ${selectedSize}) added to cart.`, 'success');
   }, [product, selectedSize, quantity, addToCart, toast]);
+
+  const handleMakePayment = useCallback(() => {
+    if (!product) return;
+    if (!selectedSize) {
+      toast('Please select a shoe size before proceeding to payment.', 'error');
+      return;
+    }
+    const primaryImage = product.images[0]?.url || '';
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      sku: product.sku,
+      price: Number(product.price),
+      bulkPrice: product.bulkPrice ? Number(product.bulkPrice) : null,
+      bulkMinimumQuantity: product.bulkMinimumQuantity,
+      selectedSize,
+      selectedColour: null,
+      quantity,
+      imageUrl: primaryImage,
+      slug: product.slug,
+    });
+    onClose();
+    navigate('/cart');
+  }, [product, selectedSize, quantity, addToCart, toast, onClose, navigate]);
 
   const handleWhatsAppContact = useCallback(() => {
     if (!product) return;
@@ -414,14 +439,25 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                               </button>
                             </>
                           ) : (
-                            <button
-                              onClick={handleAddToCart}
-                              id="product-modal-add-to-cart"
-                              className="w-full py-3.5 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
-                            >
-                              <ShoppingBag size={13} />
-                              <span>Add to Shopping Bag</span>
-                            </button>
+                            <div className="flex flex-col gap-2.5">
+                              <button
+                                onClick={handleAddToCart}
+                                id="product-modal-add-to-cart"
+                                className="w-full py-3.5 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
+                              >
+                                <ShoppingBag size={13} />
+                                <span>Add to Shopping Bag</span>
+                              </button>
+
+                              <button
+                                onClick={handleMakePayment}
+                                id="product-modal-make-payment"
+                                className="w-full py-3.5 bg-brand-clay text-white text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                              >
+                                <CreditCard size={13} />
+                                <span>Make Payment</span>
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>

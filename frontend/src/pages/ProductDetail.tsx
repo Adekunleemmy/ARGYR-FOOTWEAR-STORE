@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Loader2, MessageSquare, ArrowLeft, Layers, Bookmark } from 'lucide-react';
+import { ShoppingBag, Loader2, MessageSquare, ArrowLeft, Layers, Bookmark, CreditCard } from 'lucide-react';
 import { api } from '../services/api';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../components/Toast';
@@ -94,6 +94,33 @@ export const ProductDetail: React.FC = () => {
     });
 
     toast(`${product.name} (Size ${selectedSize}) added to cart.`, "success");
+  };
+
+  const handleMakePayment = () => {
+    if (!product) return;
+
+    if (!selectedSize) {
+      toast("Please select a shoe size before proceeding to payment.", "error");
+      return;
+    }
+
+    const primaryImage = product.images[0]?.url || 'https://via.placeholder.com/600';
+
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      sku: product.sku,
+      price: Number(product.price),
+      bulkPrice: product.bulkPrice ? Number(product.bulkPrice) : null,
+      bulkMinimumQuantity: product.bulkMinimumQuantity,
+      selectedSize,
+      selectedColour: null,
+      quantity,
+      imageUrl: primaryImage,
+      slug: product.slug
+    });
+
+    navigate('/cart');
   };
 
   const handleWhatsAppContact = () => {
@@ -284,13 +311,23 @@ export const ProductDetail: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={handleAddToCart}
-                className="w-full py-4 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <ShoppingBag size={14} />
-                <span>Add to Shopping Bag</span>
-              </button>
+              <div className="flex flex-col gap-2.5">
+                <button
+                  onClick={handleAddToCart}
+                  className="w-full py-4 bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ShoppingBag size={14} />
+                  <span>Add to Shopping Bag</span>
+                </button>
+
+                <button
+                  onClick={handleMakePayment}
+                  className="w-full py-4 bg-brand-clay text-white text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <CreditCard size={14} />
+                  <span>Make Payment</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
